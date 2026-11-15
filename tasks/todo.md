@@ -1,6 +1,7 @@
 # Bilancio — app iPhone per il bilancio personale
 
-Stato e specifica condivisa. **Se la sessione si interrompe, riparti da qui.**
+Diario di lavoro: decisioni, insidie, cosa è stato provato. **La documentazione completa per chi riprende il progetto è nel
+[README](../README.md).** Se una sessione di lavoro si interrompe, riparti da qui.
 
 ## Requisiti (decisi con l'utente)
 
