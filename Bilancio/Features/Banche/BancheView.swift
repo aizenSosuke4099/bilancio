@@ -11,7 +11,10 @@ struct BancheView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \ConnessioneBanca.scadenza) private var connessioni: [ConnessioneBanca]
     @Query(sort: \Conto.ordine) private var conti: [Conto]
-    @AppStorage("banche.redirectURL") private var redirectURL = "https://localhost/bilancio"
+    /// Pagina ponte https (Enable Banking non accetta altri schemi) che rimanda a bilancio://callback: il login si fa
+    /// nel browser di sistema, che passa bene alle app delle banche (es. Trade Republic). Vedi docs/callback/index.html.
+    @AppStorage("banche.redirectURL") private var redirectURL = BancheView.redirectPredefinito
+    static let redirectPredefinito = "https://aizensosuke4099.github.io/bilancio/callback/"
 
     @State private var applicationId = CredenzialiEnableBanking.applicationId ?? ""
     @State private var chiavePresente = CredenzialiEnableBanking.chiavePrivata != nil
@@ -95,7 +98,7 @@ struct BancheView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Redirect URL").font(.caption).foregroundStyle(.secondary)
-                TextField("https://localhost/bilancio", text: $redirectURL)
+                TextField(BancheView.redirectPredefinito, text: $redirectURL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
@@ -307,6 +310,10 @@ fileprivate struct CollegaBancaView: View {
         }
         .interactiveDismissDisabled()
         .task { await caricaBanche() }
+        // la banca ha aperto la sua app e il ritorno è arrivato da Safari: chiude il login di sistema con quel ritorno
+        .onReceive(NotificationCenter.default.publisher(for: .ritornoBanca)) { n in
+            if let u = n.object as? URL { autenticazione.ritornoDaFuori(u) }
+        }
     }
 
     private var scelta: some View {
@@ -354,12 +361,15 @@ fileprivate struct CollegaBancaView: View {
         stato = UUID().uuidString
         do {
             let url = try await EnableBanking.avviaAutorizzazione(banca: banca, validoFino: scadenzaRichiesta, redirectURL: redirectURL, state: stato)
-            if let schema = URL(string: redirectURL)?.scheme?.lowercased(), schema != "http", schema != "https" {
-                // schema personalizzato: login di sistema, che chiude da solo al ritorno
+            let r = URL(string: redirectURL)
+            if r?.host() == "localhost" {
+                // vecchio redirect: pagina della banca dentro l'app (non passa alle app delle banche)
+                fase = .web(url)
+            } else {
+                // login di sistema: si chiude da solo quando la pagina ponte apre bilancio://callback
+                let schema = r?.scheme.map { $0.lowercased() }.flatMap { $0 == "http" || $0 == "https" ? nil : $0 } ?? "bilancio"
                 let ritorno = try await autenticazione.avvia(url: url, schema: schema)
                 await completa(ritorno)
-            } else {
-                fase = .web(url)
             }
         } catch let e as ASWebAuthenticationSessionError where e.code == .canceledLogin {
             fase = .scelta
@@ -503,17 +513,33 @@ fileprivate struct AbbinamentoContiView: View {
 
 fileprivate final class AutenticazioneWeb: NSObject, ASWebAuthenticationPresentationContextProviding {
     private var sessione: ASWebAuthenticationSession?
+    private var continuazione: CheckedContinuation<URL, Error>?
 
     func avvia(url: URL, schema: String) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuazione in
-            let s = ASWebAuthenticationSession(url: url, callback: .customScheme(schema)) { ritorno, errore in
-                if let ritorno { continuazione.resume(returning: ritorno) }
-                else { continuazione.resume(throwing: errore ?? ASWebAuthenticationSessionError(.canceledLogin)) }
+        try await withCheckedThrowingContinuation { c in
+            continuazione = c
+            let s = ASWebAuthenticationSession(url: url, callback: .customScheme(schema)) { [weak self] ritorno, errore in
+                self?.chiudi(ritorno, errore)
             }
             s.presentationContextProvider = self
             sessione = s
-            if !s.start() { continuazione.resume(throwing: ASWebAuthenticationSessionError(.presentationContextInvalid)) }
+            if !s.start() { chiudi(nil, ASWebAuthenticationSessionError(.presentationContextInvalid)) }
         }
+    }
+
+    /// Il ritorno è arrivato da fuori (app della banca → Safari → pagina ponte → bilancio://callback): vale quello.
+    func ritornoDaFuori(_ url: URL) {
+        let s = sessione
+        chiudi(url, nil)
+        s?.cancel()
+    }
+
+    /// Una sola risposta per login, da qualunque parte arrivi.
+    private func chiudi(_ url: URL?, _ errore: Error?) {
+        guard let c = continuazione else { return }
+        continuazione = nil
+        sessione = nil
+        if let url { c.resume(returning: url) } else { c.resume(throwing: errore ?? ASWebAuthenticationSessionError(.canceledLogin)) }
     }
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
@@ -591,4 +617,9 @@ fileprivate struct WebAutorizzazione: UIViewRepresentable {
             return nil
         }
     }
+}
+
+extension Notification.Name {
+    /// bilancio://callback ricevuto dall'app (vedi RootView.onOpenURL).
+    static let ritornoBanca = Notification.Name("bilancio.ritornoBanca")
 }

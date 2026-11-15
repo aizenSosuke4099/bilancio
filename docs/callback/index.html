@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Bilancio</title>
+<style>body{font:17px -apple-system,system-ui,sans-serif;margin:40px 24px;text-align:center;color:#111}a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#2563EB;color:#fff;text-decoration:none}</style>
+</head>
+<body>
+<!-- Ponte per il collegamento delle banche: Enable Banking accetta solo indirizzi https, l'app ascolta bilancio://callback.
+     Passa all'app gli stessi parametri (code, state, error) e non salva nulla. -->
+<p>Torno a Bilancio…</p>
+<a id="apri" href="bilancio://callback">Apri Bilancio</a>
+<script>
+var u = "bilancio://callback" + location.search;
+document.getElementById("apri").href = u;
+location.replace(u);
+</script>
+</body>
+</html>

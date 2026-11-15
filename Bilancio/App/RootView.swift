@@ -14,7 +14,11 @@ struct RootView: View {
             Tab("Altro", systemImage: "ellipsis.circle", value: 4) { AltroView() }
         }
         // "Apri con Bilancio" da File/Mail/banca: CSV o PDF dell'estratto conto
-        .onOpenURL { fileDaImportare = FileDaImportare(url: $0) }
+        .onOpenURL { url in
+            // bilancio://callback?code=…: ritorno dal login della banca (lo raccoglie CollegaBancaView)
+            if url.scheme == "bilancio" { NotificationCenter.default.post(name: .ritornoBanca, object: url) }
+            else { fileDaImportare = FileDaImportare(url: url) }
+        }
         .sheet(item: $fileDaImportare) { f in
             NavigationStack { ImportaEstrattoView(fileURL: f.url) }
         }

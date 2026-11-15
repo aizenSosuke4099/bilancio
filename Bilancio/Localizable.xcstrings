@@ -8137,16 +8137,6 @@
         }
       }
     },
-    "https://localhost/bilancio": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "https://localhost/bilancio"
-          }
-        }
-      }
-    },
     "iOS non permette a un'app installata con un Apple ID gratuito di aggiornarsi da sola.": {
       "localizations": {
         "en": {

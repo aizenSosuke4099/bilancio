@@ -12,6 +12,18 @@
 	<array>
 		<string>bilancio.sync</string>
 	</array>
+	<!-- bilancio://callback: ritorno dal login della banca, tramite la pagina ponte docs/callback (GitHub Pages) -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>it.bilanciopersonale.callback</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>bilancio</string>
+			</array>
+		</dict>
+	</array>
 	<!-- "Apri con Bilancio" per estratti conto CSV / PDF -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
