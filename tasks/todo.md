@@ -129,3 +129,6 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
   Pagina: tua inflazione vs ISTAT, paniere su tutto lo storico con la curva ISTAT, prodotto → grafico con punto selezionabile e
   acquisti che aprono lo scontrino. Il campo ISTAT manuale nelle Impostazioni è stato tolto.
 - Cartella di Bilancio visibile in File (`LSSupportsOpeningDocumentsInPlace` = true). Non usare PlistBuddy sull'Info.plist: toglie i commenti.
+- Banche (15/11 sera): prime banche collegate, sincronizzazione OK. Errore 429 ASPSP_RATE_LIMIT_EXCEEDED risolto con le
+  intestazioni PSU (`EnableBanking.intestazioniPSU`) quando l'utente usa l'app; in background niente intestazioni (limite ~4/giorno).
+  Carte e banche non presenti su Enable Banking (anche svizzere, in CHF): import dell'estratto conto.
