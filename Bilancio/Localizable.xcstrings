@@ -345,12 +345,12 @@
         }
       }
     },
-    "%@. Collega l'iPhone al Mac, apri Xcode e premi Run: i dati restano.": {
+    "%@. Collega l'iPhone al Mac e lancia installa.sh: i dati restano.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@. Connect the iPhone to your Mac, open Xcode and press Run: your data stays."
+            "value": "%@. Connect the iPhone to your Mac and run installa.sh: your data stays."
           }
         }
       }
@@ -1350,13 +1350,13 @@
         }
       }
     },
-    "Bilancio scade %@: collega l'iPhone al Mac, apri Xcode e premi Run. I tuoi dati restano.": {
+    "Bilancio scade %@: collega l'iPhone al Mac e lancia installa.sh. I tuoi dati restano.": {
       "comment": "quando = «domani alle 20:00» ecc.",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bilancio expires %@: connect the iPhone to your Mac, open Xcode and press Run. Your data stays."
+            "value": "Bilancio expires %@: connect the iPhone to your Mac and run installa.sh. Your data stays."
           }
         }
       }
@@ -1953,12 +1953,12 @@
         }
       }
     },
-    "Con un Apple ID gratuito l'app va reinstallata ogni 7 giorni: collega l'iPhone al Mac, apri il progetto in Xcode e premi Run (▶). I dati restano sul telefono. Ti avviso 2 giorni e 1 giorno prima, e la mattina della scadenza.": {
+    "Con un Apple ID gratuito l'app va reinstallata ogni 7 giorni: collega l'iPhone al Mac e lancia installa.sh dalla cartella del progetto. I dati restano sul telefono. Ti avviso 2 giorni e 1 giorno prima, e la mattina della scadenza.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "With a free Apple ID the app must be reinstalled every 7 days: connect the iPhone to your Mac, open the project in Xcode and press Run (▶). Your data stays on the phone. I'll remind you 2 days and 1 day before, and on the morning it expires."
+            "value": "With a free Apple ID the app must be reinstalled every 7 days: connect the iPhone to your Mac and run installa.sh from the project folder. Your data stays on the phone. I'll remind you 2 days and 1 day before, and on the morning it expires."
           }
         }
       }

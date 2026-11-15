@@ -24,7 +24,7 @@ enum ScadenzaFirma {
     }
 
     static func testoAvviso(_ quando: String) -> String {
-        String(localized: "Bilancio scade \(quando): collega l'iPhone al Mac, apri Xcode e premi Run. I tuoi dati restano.", comment: "quando = «domani alle 20:00» ecc.")
+        String(localized: "Bilancio scade \(quando): collega l'iPhone al Mac e lancia installa.sh. I tuoi dati restano.", comment: "quando = «domani alle 20:00» ecc.")
     }
 
     /// Chiamata a ogni avvio: riprogramma gli avvisi di scadenza e il promemoria backup.
@@ -82,7 +82,7 @@ struct BannerScadenza: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                     Text("Bilancio scade tra \(Text(scadenza, style: .relative))").bold()
                 }
-                Text("\(scadenza.formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute())). Collega l'iPhone al Mac, apri Xcode e premi Run: i dati restano.")
+                Text("\(scadenza.formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute())). Collega l'iPhone al Mac e lancia installa.sh: i dati restano.")
                     .font(.caption)
             }
             .font(.subheadline)

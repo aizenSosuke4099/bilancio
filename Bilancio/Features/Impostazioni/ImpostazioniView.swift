@@ -48,7 +48,7 @@ struct ImpostazioniView: View {
             } header: {
                 Text("Scadenza dell'app")
             } footer: {
-                Text("Con un Apple ID gratuito l'app va reinstallata ogni 7 giorni: collega l'iPhone al Mac, apri il progetto in Xcode e premi Run (▶). I dati restano sul telefono. Ti avviso 2 giorni e 1 giorno prima, e la mattina della scadenza.")
+                Text("Con un Apple ID gratuito l'app va reinstallata ogni 7 giorni: collega l'iPhone al Mac e lancia installa.sh dalla cartella del progetto. I dati restano sul telefono. Ti avviso 2 giorni e 1 giorno prima, e la mattina della scadenza.")
             }
 
             Section("Notifiche") {
