@@ -14,6 +14,14 @@ struct BackupView: View {
     @State private var messaggio: String?
     @State private var daRipristinare: URL?
     @State private var inSospeso = Backup.ripristinoInSospeso
+    /// Backup locale da esportare: prima si chiede la password.
+    @State private var daCifrare: URL?
+    /// Copia cifrata temporanea, cancellata dopo l'esportazione.
+    @State private var temporaneo: URL?
+    @State private var cifrando = false
+    /// Backup cifrato scelto per il ripristino: serve la password.
+    @State private var cifratoDaRipristinare: URL?
+    @State private var passwordRipristino = ""
 
     var body: some View {
         List {
@@ -30,7 +38,7 @@ struct BackupView: View {
             } header: {
                 Text("Esporta")
             } footer: {
-                Text("Il backup contiene tutti i dati in formato aperto (JSON) e le foto degli scontrini: si legge anche su Android o al computer. Salvalo su iCloud Drive, Google Drive o sul Mac: se perdi l'iPhone, una copia solo sul telefono non basta.")
+                Text("Il backup contiene tutti i dati in formato aperto (JSON) e le foto degli scontrini: si legge anche su Android o al computer. Quando esce dall'iPhone è protetto dalla tua password (AES-256): conservala, per esempio in un gestore di password, perché senza non si apre. Il CSV invece è in chiaro.")
             }
 
             Section("Stato") {
@@ -83,6 +91,7 @@ struct BackupView: View {
         .background {
             Color.clear
                 .fileExporter(isPresented: $mostraEsportazione, document: documento, contentType: tipoDocumento, defaultFilename: nomeDocumento) { risultato in
+                    if let t = temporaneo { try? FileManager.default.removeItem(at: t); temporaneo = nil }
                     switch risultato {
                     case .success:
                         if esportaBackup { Backup.segnaEsportato() }
@@ -92,6 +101,17 @@ struct BackupView: View {
                     }
                     aggiorna()
                 }
+        }
+        .sheet(isPresented: Binding(get: { daCifrare != nil }, set: { if !$0 { daCifrare = nil } })) {
+            NavigationStack { PasswordBackup { password in esportaCifrato(password) } }
+        }
+        .overlay { if cifrando { ProgressView("Cifro il backup…").padding().background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)) } }
+        .alert("Password del backup", isPresented: Binding(get: { cifratoDaRipristinare != nil }, set: { if !$0 { cifratoDaRipristinare = nil; passwordRipristino = "" } })) {
+            SecureField("Password", text: $passwordRipristino)
+            Button("Ripristina", role: .destructive) { ripristinaCifrato() }
+            Button("Annulla", role: .cancel) {}
+        } message: {
+            Text("Questo backup è protetto da password.")
         }
         .confirmationDialog("Ripristinare questo backup?", isPresented: Binding(get: { daRipristinare != nil }, set: { if !$0 { daRipristinare = nil } }), titleVisibility: .visible) {
             Button("Ripristina", role: .destructive) { ripristina() }
@@ -122,7 +142,30 @@ struct BackupView: View {
         aggiorna()
     }
 
-    private func esporta(_ cartella: URL) {
+    /// Fuori dall'iPhone il backup va solo cifrato: prima la password.
+    private func esporta(_ cartella: URL) { daCifrare = cartella }
+
+    private func esportaCifrato(_ password: String) {
+        guard let sorgente = daCifrare else { return }
+        daCifrare = nil
+        cifrando = true
+        let destinazione = FileManager.default.temporaryDirectory.appending(path: "esporta-\(UUID().uuidString)", directoryHint: .isDirectory)
+            .appending(path: sorgente.lastPathComponent, directoryHint: .isDirectory)
+        Task {
+            do {
+                // PBKDF2 e AES su tutte le foto: fuori dal thread principale
+                try await Task.detached { try CifraturaBackup.cifra(sorgente, in: destinazione, password: password) }.value
+                temporaneo = destinazione.deletingLastPathComponent()
+                presentaEsportazione(destinazione)
+            } catch {
+                try? FileManager.default.removeItem(at: destinazione.deletingLastPathComponent())
+                messaggio = error.localizedDescription
+            }
+            cifrando = false
+        }
+    }
+
+    private func presentaEsportazione(_ cartella: URL) {
         do {
             documento = DocumentoBackupEsportato(wrapper: try FileWrapper(url: cartella))
             tipoDocumento = .folder
@@ -149,9 +192,54 @@ struct BackupView: View {
         do {
             try Backup.preparaRipristino(da: url)
             messaggio = String(localized: "Ripristino pronto. Chiudi e riapri l'app per completare.")
+        } catch CifraturaBackup.Errore.serveLaPassword {
+            cifratoDaRipristinare = url
         } catch {
             messaggio = error.localizedDescription
         }
         aggiorna()
+    }
+
+    private func ripristinaCifrato() {
+        guard let url = cifratoDaRipristinare else { return }
+        let password = passwordRipristino
+        cifratoDaRipristinare = nil
+        passwordRipristino = ""
+        do {
+            try Backup.preparaRipristino(da: url, password: password)
+            messaggio = String(localized: "Ripristino pronto. Chiudi e riapri l'app per completare.")
+        } catch {
+            messaggio = error.localizedDescription
+        }
+        aggiorna()
+    }
+}
+
+/// Password per il backup esportato, scritta due volte.
+private struct PasswordBackup: View {
+    let conferma: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var password = ""
+    @State private var ripeti = ""
+
+    private var valida: Bool { password.count >= CifraturaBackup.lunghezzaMinima && password == ripeti }
+
+    var body: some View {
+        Form {
+            Section {
+                SecureField("Password", text: $password)
+                SecureField("Ripeti la password", text: $ripeti)
+            } footer: {
+                Text("Almeno \(CifraturaBackup.lunghezzaMinima) caratteri. Senza questa password il backup non si può aprire in nessun modo: salvala in un gestore di password.")
+            }
+        }
+        .navigationTitle("Proteggi il backup")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Esporta") { conferma(password); dismiss() }.disabled(!valida)
+            }
+        }
     }
 }

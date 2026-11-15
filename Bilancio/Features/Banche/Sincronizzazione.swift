@@ -1,41 +1,14 @@
 import Foundation
 import SwiftData
-import BackgroundTasks
 import UserNotifications
 
 /// Scarica saldi e movimenti contabilizzati dalle banche collegate (Enable Banking).
-/// In background al massimo ogni 6 ore (molte banche concedono 4 accessi al giorno senza l'utente);
-/// con l'app aperta l'utente è presente (intestazioni PSU, niente limite) e si aggiorna ogni 30 minuti.
+/// Solo con l'app aperta, al massimo ogni 30 minuti: l'utente è presente (intestazioni PSU, niente limite di 4 letture
+/// al giorno). Niente aggiornamento in background: il database è leggibile solo a telefono sbloccato (`Persistenza`).
 enum Sincronizzazione {
 
-    static let idTask = "bilancio.sync"
-    static let intervallo: TimeInterval = 6 * 3600
-    static let intervalloConUtente: TimeInterval = 30 * 60
-    private static var registrato = false
+    static let intervallo: TimeInterval = 30 * 60
     private static var inCorso = false
-
-    // MARK: Background
-
-    static func registraBackground() {
-        guard !registrato else { return } // registrare due volte lo stesso id fa chiudere l'app
-        registrato = true
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: idTask, using: .main) { task in
-            programmaBackground()
-            let lavoro = Task { @MainActor in
-                let ctx = Persistenza.container.mainContext
-                await sincronizza(in: ctx, forza: false, presente: false)
-                try? ctx.save()
-                task.setTaskCompleted(success: true)
-            }
-            task.expirationHandler = { lavoro.cancel() }
-        }
-    }
-
-    static func programmaBackground() {
-        let richiesta = BGAppRefreshTaskRequest(identifier: idTask)
-        richiesta.earliestBeginDate = Date(timeIntervalSinceNow: intervallo)
-        try? BGTaskScheduler.shared.submit(richiesta)
-    }
 
     // MARK: Nomi dei conti
 
@@ -62,17 +35,17 @@ enum Sincronizzazione {
 
     // MARK: Sincronizzazione
 
-    /// All'apertura dell'app (utente presente).
+    /// All'apertura dell'app.
     static func sincronizzaSeServe(in context: ModelContext) async {
-        await sincronizza(in: context, forza: false, presente: true)
+        await sincronizza(in: context, forza: false)
     }
 
     /// "Sincronizza ora" e subito dopo un collegamento: ignora l'intervallo.
     static func sincronizzaOra(in context: ModelContext) async {
-        await sincronizza(in: context, forza: true, presente: true)
+        await sincronizza(in: context, forza: true)
     }
 
-    private static func sincronizza(in context: ModelContext, forza: Bool, presente: Bool) async {
+    private static func sincronizza(in context: ModelContext, forza: Bool) async {
         let connessioni = (try? context.fetch(FetchDescriptor<ConnessioneBanca>())) ?? []
         await programmaNotificheScadenza(connessioni)
         guard !inCorso, CredenzialiEnableBanking.complete else { return }
@@ -81,9 +54,9 @@ enum Sincronizzazione {
 
         let ora = Date()
         for c in connessioni where c.scadenza > ora {
-            if !forza, let u = c.ultimaSync, ora.timeIntervalSince(u) < (presente ? intervalloConUtente : intervallo) { continue }
+            if !forza, let u = c.ultimaSync, ora.timeIntervalSince(u) < intervallo { continue }
             do {
-                try await sincronizza(c, presente: presente, in: context)
+                try await sincronizza(c, presente: true, in: context)
                 c.ultimaSync = ora
                 registraErrore(nil, per: c)
             } catch is CancellationError {

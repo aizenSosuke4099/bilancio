@@ -66,12 +66,9 @@ enum Backup {
     /// Si scrivono e si leggono solo con l'app aperta, quindi non serve altro. I file nuovi ereditano la protezione
     /// della cartella; quelli già presenti si aggiornano qui.
     private static func proteggiCartellaBackup() throws {
-        let fm = FileManager.default
-        let completa: [FileAttributeKey: Any] = [.protectionKey: FileProtectionType.complete]
-        try fm.createDirectory(at: cartellaBackup, withIntermediateDirectories: true, attributes: completa)
-        try? fm.setAttributes(completa, ofItemAtPath: cartellaBackup.path)
-        let e = fm.enumerator(at: cartellaBackup, includingPropertiesForKeys: nil)
-        while let f = e?.nextObject() as? URL { try? fm.setAttributes(completa, ofItemAtPath: f.path) }
+        try FileManager.default.createDirectory(at: cartellaBackup, withIntermediateDirectories: true,
+                                                attributes: [.protectionKey: FileProtectionType.complete])
+        Persistenza.proteggi(cartellaBackup)
     }
 
     /// Backup locale settimanale, chiamato quando l'app va in background.
@@ -106,16 +103,27 @@ enum Backup {
     }
 
     /// Prepara in RipristinoInSospeso il database ricostruito dal backup (anche da iCloud Drive): verrà applicato alla prossima apertura.
-    static func preparaRipristino(da sorgente: URL) throws {
+    /// Un backup protetto da password senza `password` lancia `CifraturaBackup.Errore.serveLaPassword`.
+    static func preparaRipristino(da sorgente: URL, password: String? = nil) throws {
         let accesso = sorgente.startAccessingSecurityScopedResource()
         defer { if accesso { sorgente.stopAccessingSecurityScopedResource() } }
 
         // la lettura coordinata scarica da iCloud i file non ancora presenti sul telefono
         var erroreCoordinatore: NSError?
         var erroreCopia: Error?
-        NSFileCoordinator().coordinate(readingItemAt: sorgente, options: [], error: &erroreCoordinatore) { url in
+        NSFileCoordinator().coordinate(readingItemAt: sorgente, options: [], error: &erroreCoordinatore) { originale in
+            let fm = FileManager.default
+            var decifrata: URL?
+            defer { if let decifrata { try? fm.removeItem(at: decifrata) } }   // la copia in chiaro non resta in giro
             do {
-                let fm = FileManager.default
+                var url = originale
+                if CifraturaBackup.èCifrato(originale) {
+                    guard let password else { throw CifraturaBackup.Errore.serveLaPassword }
+                    let t = fm.temporaryDirectory.appending(path: "ripristino-\(UUID().uuidString)", directoryHint: .isDirectory)
+                    decifrata = t
+                    try CifraturaBackup.decifra(originale, in: t, password: password)
+                    url = t
+                }
                 if fm.fileExists(atPath: inSospeso.path) { try fm.removeItem(at: inSospeso) }
                 try fm.createDirectory(at: supporto, withIntermediateDirectories: true)
                 if fm.fileExists(atPath: url.appending(path: BackupAperto.fileDati).path) {

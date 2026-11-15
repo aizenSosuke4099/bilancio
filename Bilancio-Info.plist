@@ -2,16 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Aggiornamento dei conti in background (Enable Banking) -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>processing</string>
-	</array>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>bilancio.sync</string>
-	</array>
 	<!-- bilancio://callback: ritorno dal login della banca, tramite la pagina ponte docs/callback (GitHub Pages) -->
 	<key>CFBundleURLTypes</key>
 	<array>

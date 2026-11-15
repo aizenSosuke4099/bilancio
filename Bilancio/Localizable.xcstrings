@@ -1014,6 +1014,16 @@
         }
       }
     },
+    "Almeno %lld caratteri. Senza questa password il backup non si può aprire in nessun modo: salvala in un gestore di password.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At least %lld characters. Without this password the backup cannot be opened in any way: save it in a password manager."
+          }
+        }
+      }
+    },
     "Altra…": {
       "localizations": {
         "en": {
@@ -1837,6 +1847,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Wrong check digit: double-check the ISIN."
+          }
+        }
+      }
+    },
+    "Cifro il backup…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encrypting the backup…"
           }
         }
       }
@@ -3472,12 +3492,12 @@
         }
       }
     },
-    "Il backup contiene tutti i dati in formato aperto (JSON) e le foto degli scontrini: si legge anche su Android o al computer. Salvalo su iCloud Drive, Google Drive o sul Mac: se perdi l'iPhone, una copia solo sul telefono non basta.": {
+    "Il backup contiene tutti i dati in formato aperto (JSON) e le foto degli scontrini: si legge anche su Android o al computer. Quando esce dall'iPhone è protetto dalla tua password (AES-256): conservala, per esempio in un gestore di password, perché senza non si apre. Il CSV invece è in chiaro.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The backup holds all your data in an open format (JSON) plus the receipt photos: it can also be read on Android or a computer. Save it to iCloud Drive, Google Drive or your Mac: if you lose your iPhone, a copy only on the phone isn't enough."
+            "value": "The backup holds all your data in an open format (JSON) plus the receipt photos: it can also be read on Android or a computer. When it leaves the iPhone it is protected by your password (AES-256): keep it safe, for example in a password manager, because without it the backup cannot be opened. The CSV export is not encrypted."
           }
         }
       }
@@ -3548,6 +3568,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The bilancio.json file is not a Bilancio backup that this version of the app can read."
+          }
+        }
+      }
+    },
+    "Il file cifratura.json non è leggibile da questa versione dell'app.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cifratura.json file cannot be read by this version of the app."
           }
         }
       }
@@ -4090,12 +4120,12 @@
         }
       }
     },
-    "La sincronizzazione parte da sola all'apertura e in background, al massimo ogni 6 ore. Scorri su un collegamento per rinnovarlo o eliminarlo.": {
+    "La sincronizzazione parte da sola quando apri l'app, al massimo ogni 30 minuti. Scorri su un collegamento per rinnovarlo o eliminarlo.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sync runs on its own when the app opens and in the background, at most every 6 hours. Swipe on a link to renew or delete it."
+            "value": "Sync runs by itself when you open the app, at most every 30 minutes. Swipe a connection to renew or delete it."
           }
         }
       }
@@ -5505,6 +5535,36 @@
         }
       }
     },
+    "Password": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password"
+          }
+        }
+      }
+    },
+    "Password del backup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup password"
+          }
+        }
+      }
+    },
+    "Password sbagliata.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wrong password."
+          }
+        }
+      }
+    },
     "Patrimonio nel tempo": {
       "localizations": {
         "en": {
@@ -5897,6 +5957,16 @@
         }
       }
     },
+    "Proteggi il backup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect the backup"
+          }
+        }
+      }
+    },
     "Prova a cambiare ricerca o filtri.": {
       "localizations": {
         "en": {
@@ -6013,6 +6083,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This installation doesn't know which version it was built from: reinstall it with installa.sh to compare."
+          }
+        }
+      }
+    },
+    "Questo backup è protetto da password.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This backup is password protected."
           }
         }
       }
@@ -6411,6 +6491,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Previous allocations"
+          }
+        }
+      }
+    },
+    "Ripeti la password": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repeat the password"
           }
         }
       }

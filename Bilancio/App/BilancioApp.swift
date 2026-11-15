@@ -6,16 +6,20 @@ struct BilancioApp: App {
     @Environment(\.scenePhase) private var fase
 
     init() {
-        // I task in background vanno registrati prima che l'app finisca di avviarsi.
-        Sincronizzazione.registraBackground()
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-verifica") { Abbinamento.autoverifica(); BackupAperto.autoverifica(); CalcoloInflazione.autoverifica(); ISTAT.autoverifica(); print("Inflazione e ISTAT: autoverifica OK") }
+        if ProcessInfo.processInfo.arguments.contains("-verifica") { Abbinamento.autoverifica(); BackupAperto.autoverifica(); CifraturaBackup.autoverifica(); CalcoloInflazione.autoverifica(); ISTAT.autoverifica(); print("Inflazione e ISTAT: autoverifica OK") }
         // prova del giro completo: backup del database vero → ripristino in sospeso, applicato al prossimo avvio
         if ProcessInfo.processInfo.arguments.contains("-provaRipristino") {
             let ctx = Persistenza.container.mainContext
             let url = try! Backup.crea(in: ctx)
-            try! Backup.preparaRipristino(da: url)
-            print("provaRipristino: pronto da \(url.lastPathComponent)")
+            // come un backup esportato: cifrato con password, poi ripristinato da lì
+            let cifrato = FileManager.default.temporaryDirectory.appending(path: "prova-cifrato", directoryHint: .isDirectory)
+            try? FileManager.default.removeItem(at: cifrato)
+            try! CifraturaBackup.cifra(url, in: cifrato, password: "password di prova")
+            do { try Backup.preparaRipristino(da: cifrato); fatalError("serviva la password") } catch CifraturaBackup.Errore.serveLaPassword {} catch { fatalError("\(error)") }
+            try! Backup.preparaRipristino(da: cifrato, password: "password di prova")
+            try? FileManager.default.removeItem(at: cifrato)
+            print("provaRipristino: pronto da \(url.lastPathComponent), passando dalla copia cifrata")
         }
         #endif
     }
@@ -29,7 +33,6 @@ struct BilancioApp: App {
         .modelContainer(Persistenza.container)
         .onChange(of: fase, initial: true) { _, nuova in
             if nuova == .active { Task { await Avvio.esegui() } }
-            if nuova == .background { Sincronizzazione.programmaBackground() }
         }
     }
 }

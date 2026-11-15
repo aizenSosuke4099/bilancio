@@ -137,3 +137,8 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
   https://aizensosuke4099.github.io/bilancio/callback/ (docs/callback/index.html) → bilancio://callback; il login gira in
   ASWebAuthenticationSession (passa alle app delle banche che confermano il login nella loro app). Il ritorno da fuori vale solo con lo state giusto.
   Su Enable Banking i redirect registrati sono https://localhost/bilancio (vecchio, pagina dentro l'app) e la pagina ponte.
+- Sicurezza (15/11 notte): database e backup locali con FileProtectionType.complete (illeggibili a telefono bloccato) →
+  niente più sincronizzazione in background (UIBackgroundModes tolto), si sincronizza all'apertura (PSU, ogni 30 min).
+  Backup esportati cifrati con password (`CifraturaBackup`: PBKDF2-HMAC-SHA256 600k + AES-256-GCM, file *.enc + cifratura.json);
+  i backup locali restano in chiaro (protetti da iOS) per il backup automatico. Ripristino: chiede la password se serve.
+  Chiave .pem: in Portachiavi sull'iPhone e nel gestore di password dell'utente; le copie in Documents si cancellano da sole.

@@ -214,7 +214,7 @@ struct BancheView: View {
             Text("Collegamenti")
         } footer: {
             if !configurato { Text("Completa la configurazione per collegare le banche.") }
-            else { Text("La sincronizzazione parte da sola all'apertura e in background, al massimo ogni 6 ore. Scorri su un collegamento per rinnovarlo o eliminarlo.") }
+            else { Text("La sincronizzazione parte da sola quando apri l'app, al massimo ogni 30 minuti. Scorri su un collegamento per rinnovarlo o eliminarlo.") }
         }
     }
 
