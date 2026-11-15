@@ -78,7 +78,7 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - [x] Integrazione (merge dei rami) + build — OK
 - [x] Test su simulatore (dati di esempio): le 5 schede si aprono e mostrano i dati. Sottopagine non toccate (accesso al pannello simulatore non concesso).
 - [x] Multilingua: italiano + inglese (vedi sotto)
-- [ ] Installazione su iPhone (l'utente: Apple ID in Xcode › Settings › Accounts, Modalità sviluppatore sull'iPhone)
+- [x] Installazione su iPhone (15/11): firma con Apple ID gratuito, rinnovo ogni 7 giorni con `./installa.sh` (iPhone collegato).
 
 ### Note operative (15/11 notte)
 - Progetto spostato in `~/Developer/bilancio` (fuori da iCloud: la Scrivania sincronizzata toglieva i file dal disco). In Scrivania › Claude c'è un collegamento.
