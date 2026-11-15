@@ -5783,6 +5783,36 @@
         }
       }
     },
+    "Prima importa la chiave (file .pem) qui sopra.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First import the key (.pem file) above."
+          }
+        }
+      }
+    },
+    "Prima inserisci l'Application ID e importa la chiave (file .pem) qui sopra.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First enter the Application ID and import the key (.pem file) above."
+          }
+        }
+      }
+    },
+    "Prima inserisci l'Application ID qui sopra.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First enter the Application ID above."
+          }
+        }
+      }
+    },
     "Prima volta con questo formato: dimmi cosa c'è in ogni colonna. La prossima volta lo riconosco da solo.": {
       "localizations": {
         "en": {

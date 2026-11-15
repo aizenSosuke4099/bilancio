@@ -144,16 +144,20 @@ struct BancheView: View {
         // il file scaricato da Enable Banking si chiama <application id>.pem
         let nome = url.deletingPathExtension().lastPathComponent
         if applicationId.isEmpty, UUID(uuidString: nome) != nil { applicationId = nome }
-        salvaChiave(testo)
+        // la chiave ora sta nel Portachiavi: una copia lasciata nella cartella di Bilancio (visibile in File) si toglie
+        if salvaChiave(testo), url.path.hasPrefix(URL.documentsDirectory.path) { try? FileManager.default.removeItem(at: url) }
     }
 
-    private func salvaChiave(_ pem: String) {
+    @discardableResult
+    private func salvaChiave(_ pem: String) -> Bool {
         do {
             _ = try EnableBanking.chiaveRSA(pem: pem)
             CredenzialiEnableBanking.chiavePrivata = pem.trimmingCharacters(in: .whitespacesAndNewlines)
             chiavePresente = true
+            return true
         } catch {
             messaggio = error.localizedDescription
+            return false
         }
     }
 
@@ -169,11 +173,17 @@ struct BancheView: View {
                     }
             }
             Button {
-                collega = RichiestaCollegamento(banca: nil)
+                // non disattivato: un pulsante grigio non spiega cosa manca
+                let senzaID = applicationId.trimmingCharacters(in: .whitespaces).isEmpty
+                switch (senzaID, chiavePresente) {
+                case (true, false): messaggio = String(localized: "Prima inserisci l'Application ID e importa la chiave (file .pem) qui sopra.")
+                case (true, true): messaggio = String(localized: "Prima inserisci l'Application ID qui sopra.")
+                case (false, false): messaggio = String(localized: "Prima importa la chiave (file .pem) qui sopra.")
+                case (false, true): collega = RichiestaCollegamento(banca: nil)
+                }
             } label: {
                 Label("Collega una banca", systemImage: "plus.circle")
             }
-            .disabled(!configurato)
             if !connessioni.isEmpty {
                 Button {
                     Task {
