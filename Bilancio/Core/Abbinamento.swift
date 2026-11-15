@@ -39,8 +39,10 @@ enum Abbinamento {
         guard let conto = m.conto, conto.tipo != .contanti, m.importo != 0 else { return }
         let candidati = Contabilita.movimenti(da: m.data.aggiungendo(giorni: -giorniTolleranza),
                                               a: m.data.aggiungendo(giorni: giorniTolleranza + 1), in: context).filter { c in
-            c.persistentModelID != m.persistentModelID
-                && abs(c.importo + m.importo) < 0.011
+            // tra valute diverse (es. EUR → CHF) il cambio della banca non coincide col nostro: 3% di margine
+            let margine = m.valutaOriginale != c.valutaOriginale ? max(0.011, abs(m.importo) * 0.03) : 0.011
+            return c.persistentModelID != m.persistentModelID
+                && abs(c.importo + m.importo) < margine
                 && c.conto != nil && c.conto?.tipo != .contanti
                 && c.conto?.persistentModelID != conto.persistentModelID
                 && (c.tipo == .giroconto || c.daConfermare)
@@ -87,6 +89,19 @@ enum Abbinamento {
         // i giroconti non entrano nei totali
         let t = Contabilita.totali([uscita, entrata, a, b])
         assert(t.entrate == 0 && t.spese == 0)
+        // conto in franchi: importo in euro al cambio, saldo nella valuta del conto, giroconto EUR → CHF col 3% di margine
+        let cambioPrima = UserDefaults.standard.double(forKey: "cambio.CHF")
+        defer { UserDefaults.standard.set(cambioPrima, forKey: "cambio.CHF") }
+        Portafoglio.salvaCambio("CHF", 1.07)
+        let svizzero = Conto(nome: "Svizzero", tipo: .corrente)
+        svizzero.valuta = "CHF"
+        ctx.insert(svizzero)
+        let chf = arriva(-100, "COOP PRONTO", svizzero)
+        assert(chf.importo == -107 && chf.importoOriginale == -100 && chf.valutaOriginale == "CHF")
+        assert(Contabilita.saldoInValuta(svizzero) == -100 && abs(Contabilita.saldo(svizzero) + 107) < 0.001)
+        let versoCH = arriva(-1_000, "BONIFICO SEPA SWISS", corrente, giorni: 10)
+        let inCH = arriva(950, "ACCREDITO", svizzero, giorni: 11)   // 950 CHF = 1016,50 € al nostro cambio: dentro il 3%
+        assert(versoCH.tipo == .giroconto && inCH.tipo == .giroconto)
         print("Abbinamento.autoverifica OK")
     }
     #endif

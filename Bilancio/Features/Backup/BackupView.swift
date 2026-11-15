@@ -30,7 +30,7 @@ struct BackupView: View {
             } header: {
                 Text("Esporta")
             } footer: {
-                Text("Il backup è la copia completa del database, foto degli scontrini comprese. Salvalo su iCloud Drive o sul Mac: se perdi l'iPhone, una copia solo sul telefono non basta.")
+                Text("Il backup contiene tutti i dati in formato aperto (JSON) e le foto degli scontrini: si legge anche su Android o al computer. Salvalo su iCloud Drive, Google Drive o sul Mac: se perdi l'iPhone, una copia solo sul telefono non basta.")
             }
 
             Section("Stato") {
@@ -115,7 +115,7 @@ struct BackupView: View {
     private func creaEdEsporta() {
         do {
             try context.save()
-            esporta(try Backup.crea())
+            esporta(try Backup.crea(in: context))
         } catch {
             messaggio = String(localized: "Backup non riuscito: \(error.localizedDescription)")
         }

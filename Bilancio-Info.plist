@@ -33,6 +33,9 @@
 	<!-- I backup finiscono in "File > Sul mio iPhone > Bilancio" -->
 	<key>UIFileSharingEnabled</key>
 	<true/>
+	<!-- Commit da cui è compilata l'app (lo passa installa.sh): serve ad "Aggiorna app" -->
+	<key>BilancioCommit</key>
+	<string>$(BILANCIO_COMMIT)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

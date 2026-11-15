@@ -9,7 +9,14 @@ struct BilancioApp: App {
         // I task in background vanno registrati prima che l'app finisca di avviarsi.
         Sincronizzazione.registraBackground()
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-verifica") { Abbinamento.autoverifica() }
+        if ProcessInfo.processInfo.arguments.contains("-verifica") { Abbinamento.autoverifica(); BackupAperto.autoverifica() }
+        // prova del giro completo: backup del database vero → ripristino in sospeso, applicato al prossimo avvio
+        if ProcessInfo.processInfo.arguments.contains("-provaRipristino") {
+            let ctx = Persistenza.container.mainContext
+            let url = try! Backup.crea(in: ctx)
+            try! Backup.preparaRipristino(da: url)
+            print("provaRipristino: pronto da \(url.lastPathComponent)")
+        }
         #endif
     }
 

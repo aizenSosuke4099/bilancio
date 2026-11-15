@@ -60,6 +60,9 @@ import SwiftData
     /// Id della transazione bancaria, per non importarla due volte.
     var idEsterno: String?
     var creatoIl: Date = Date()
+    /// Conti in valuta estera (es. CHF): importo nella valuta del conto. `importo` resta sempre in euro.
+    var importoOriginale: Double?
+    var valutaOriginale: String?
 
     var conto: Conto?
     var categoria: Categoria?

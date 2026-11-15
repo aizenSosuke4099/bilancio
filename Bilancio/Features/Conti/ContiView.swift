@@ -95,8 +95,14 @@ fileprivate struct RigaConto: View {
                 Text(sottotitolo).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
-            Text(Contabilita.saldo(conto).euro).monospacedDigit()
-                .foregroundStyle(Contabilita.saldo(conto) < 0 ? Tinta.spese : .primary)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(conto.valuta == "EUR" ? Contabilita.saldo(conto).euro : Contabilita.saldoInValuta(conto).valuta(conto.valuta))
+                    .monospacedDigit()
+                    .foregroundStyle(Contabilita.saldo(conto) < 0 ? Tinta.spese : .primary)
+                if conto.valuta != "EUR" {
+                    Text("≈ \(Contabilita.saldo(conto).euro)").font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                }
+            }
         }
     }
 
@@ -121,11 +127,15 @@ fileprivate struct ContoDettaglioView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(Contabilita.saldo(conto).euro).font(.largeTitle.bold()).monospacedDigit()
+                    Text(conto.valuta == "EUR" ? Contabilita.saldo(conto).euro : Contabilita.saldoInValuta(conto).valuta(conto.valuta))
+                        .font(.largeTitle.bold()).monospacedDigit()
+                    if conto.valuta != "EUR" {
+                        Text("≈ \(Contabilita.saldo(conto).euro) al cambio di oggi").font(.caption).foregroundStyle(.secondary)
+                    }
                     if let d = conto.saldoBancaData, conto.saldoBanca != nil {
                         Text("Saldo letto dalla banca il \(d.breve)").font(.caption).foregroundStyle(.secondary)
                     } else {
-                        Text("Saldo iniziale \(conto.saldoIniziale.euro) + movimenti").font(.caption).foregroundStyle(.secondary)
+                        Text("Saldo iniziale \(conto.saldoIniziale.valuta(conto.valuta)) + movimenti").font(.caption).foregroundStyle(.secondary)
                     }
                     if let t = conto.tassoAnnuo, t > 0 {
                         Text("Interessi stimati: \((Contabilita.saldo(conto) * t / 100 / 12).euro) al mese (lordi)").font(.caption).foregroundStyle(Tinta.entrate)
@@ -160,11 +170,13 @@ fileprivate struct EditorConto: View {
     @State private var nome = ""
     @State private var tipo = TipoConto.corrente
     @State private var istituto = ""
+    @State private var valuta = "EUR"
     @State private var saldoIniziale = ""
     @State private var tasso = ""
     @State private var colore = "#2563EB"
     @State private var archiviato = false
 
+    private static let valute = ["EUR", "CHF", "USD", "GBP"]
     private static let colori = ["#2563EB", "#1E3A8A", "#0EA5E9", "#16A34A", "#10B981", "#F59E0B", "#B45309", "#EF4444", "#A855F7", "#EC4899", "#374151", "#111827"]
 
     var body: some View {
@@ -175,6 +187,15 @@ fileprivate struct EditorConto: View {
                     ForEach(TipoConto.allCases) { Label($0.etichetta, systemImage: $0.icona).tag($0) }
                 }
                 TextField("Banca o istituto", text: $istituto)
+                if tipo != .contanti {
+                    Picker("Valuta", selection: $valuta) {
+                        ForEach(Array(Set(Self.valute + [valuta])).sorted(), id: \.self) { Text($0).tag($0) }
+                    }
+                }
+            } footer: {
+                if valuta != "EUR" {
+                    Text("Saldo e movimenti restano in \(valuta); nei totali vengono convertiti in euro al cambio BCE più recente.")
+                }
             }
             Section {
                 TextField("Saldo iniziale", text: $saldoIniziale).keyboardType(.numbersAndPunctuation)
@@ -223,6 +244,7 @@ fileprivate struct EditorConto: View {
         nome = c.nome
         tipo = c.tipo
         istituto = c.istituto
+        valuta = c.valuta
         saldoIniziale = c.saldoIniziale == 0 ? "" : c.saldoIniziale.formatted(.number.precision(.fractionLength(2)))
         tasso = c.tassoAnnuo.map { $0.formatted(.number.precision(.fractionLength(0...2))) } ?? ""
         colore = c.coloreHex
@@ -238,11 +260,17 @@ fileprivate struct EditorConto: View {
         c.nome = nome.trimmingCharacters(in: .whitespaces)
         c.tipo = tipo
         c.istituto = istituto.trimmingCharacters(in: .whitespaces)
+        c.valuta = tipo == .contanti ? "EUR" : valuta
         c.saldoIniziale = leggiNumero(saldoIniziale) ?? 0
         c.tassoAnnuo = tipo == .remunerato ? leggiNumero(tasso) : nil
         c.coloreHex = colore
         c.archiviato = archiviato
         try? context.save()
+        // senza un cambio noto la valuta varrebbe 1:1 con l'euro: lo si scarica subito
+        if c.valuta != "EUR", UserDefaults.standard.double(forKey: "cambio.\(c.valuta)") == 0 {
+            let v = c.valuta
+            Task { if let cambio = await Prezzi.cambio(v) { Portafoglio.salvaCambio(v, cambio) } }
+        }
         dismiss()
     }
 }

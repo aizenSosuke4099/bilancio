@@ -30,7 +30,7 @@ struct BloccoApp<Contenuto: View>: View {
                     daChiedere = true
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     try? context.save()
-                    Backup.automaticoSeServe()
+                    Backup.automaticoSeServe(in: context)
                 case .active where bloccata && daChiedere:
                     // solo all'avvio o al ritorno dal background: un annullamento non deve riaprire il prompt all'infinito
                     daChiedere = false

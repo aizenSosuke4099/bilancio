@@ -45,6 +45,7 @@ struct AltroView: View {
                     NavigationLink { CategorieView() } label: { Label("Categorie e budget", systemImage: "tag") }
                     NavigationLink { BackupView() } label: { Label("Backup", systemImage: "externaldrive") }
                     NavigationLink { ImpostazioniView() } label: { Label("Impostazioni", systemImage: "gearshape") }
+                    NavigationLink { AggiornaAppView() } label: { Label("Aggiorna app", systemImage: "arrow.down.circle") }
                 }
             }
             .navigationTitle("Altro")

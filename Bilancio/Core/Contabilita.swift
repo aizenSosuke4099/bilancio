@@ -76,10 +76,26 @@ enum Contabilita {
         return accumulo.values.filter { abs($0.importo) >= 0.005 }.sorted { $0.importo > $1.importo }
     }
 
-    /// Saldo attuale di un conto: quello letto dalla banca se c'è, altrimenti saldo iniziale + movimenti.
-    static func saldo(_ conto: Conto) -> Double {
+    /// Saldo nella valuta del conto: quello letto dalla banca se c'è, altrimenti saldo iniziale + movimenti.
+    static func saldoInValuta(_ conto: Conto) -> Double {
         if let b = conto.saldoBanca { return b }
-        return conto.saldoIniziale + conto.movimenti.reduce(0) { $0 + $1.importo }
+        return conto.saldoIniziale + conto.movimenti.reduce(0) { $0 + ($1.importoOriginale ?? $1.importo) }
+    }
+
+    /// Saldo in euro (i conti in valuta estera al cambio di oggi).
+    static func saldo(_ conto: Conto) -> Double { saldoInValuta(conto) * Portafoglio.cambio(conto.valuta) }
+
+    /// Importo nella valuta di un conto → euro, all'ultimo cambio noto.
+    // ponytail: cambio del giorno di registrazione, non della data del movimento; per lo storico servirebbe il fixing per data
+    static func inEuro(_ importo: Double, valuta: String) -> Double {
+        valuta == "EUR" ? importo : (importo * Portafoglio.cambio(valuta)).centesimi
+    }
+
+    /// Imposta l'importo di un movimento dato nella valuta del suo conto: `importo` in euro, l'originale a parte.
+    static func imposta(_ m: Movimento, importoInValuta v: Double, valuta: String) {
+        m.importo = inEuro(v, valuta: valuta)
+        m.importoOriginale = valuta == "EUR" ? nil : v
+        m.valutaOriginale = valuta == "EUR" ? nil : valuta
     }
 
     /// Somma dei saldi dei conti attivi (le carte di credito pesano in negativo).

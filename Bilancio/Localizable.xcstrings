@@ -880,6 +880,16 @@
         }
       }
     },
+    "Aggiorna app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update app"
+          }
+        }
+      }
+    },
     "Aggiorna prezzo": {
       "localizations": {
         "en": {
@@ -1126,6 +1136,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Settings"
+          }
+        }
+      }
+    },
+    "Apri il progetto su GitHub": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the project on GitHub"
           }
         }
       }
@@ -1427,6 +1447,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Butter 250 g"
+          }
+        }
+      }
+    },
+    "C'è 1 aggiornamento.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is 1 update."
           }
         }
       }
@@ -1767,6 +1797,16 @@
         }
       }
     },
+    "Ci sono %lld aggiornamenti.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There are %lld updates."
+          }
+        }
+      }
+    },
     "Ci sono già dei movimenti: cancella prima tutti i dati, altrimenti i dati demo si aggiungerebbero ai tuoi.": {
       "localizations": {
         "en": {
@@ -1803,6 +1843,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Link to a payment"
+          }
+        }
+      }
+    },
+    "Collega l'iPhone al Mac e lancia installa.sh dalla cartella del progetto: scarica da GitHub la versione nuova e la installa. I dati restano sul telefono.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect the iPhone to your Mac and run installa.sh from the project folder: it downloads the new version from GitHub and installs it. Your data stays on the phone."
           }
         }
       }
@@ -1919,6 +1969,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "How to set it up"
+          }
+        }
+      }
+    },
+    "Come si installa": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How to install"
           }
         }
       }
@@ -2259,6 +2319,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Month-end check"
+          }
+        }
+      }
+    },
+    "Controllo su GitHub…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking GitHub…"
           }
         }
       }
@@ -3180,6 +3250,16 @@
         }
       }
     },
+    "Hai l'ultima versione.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have the latest version."
+          }
+        }
+      }
+    },
     "Hai più contanti del previsto: la rettifica riduce le spese «Contanti non tracciati».": {
       "localizations": {
         "en": {
@@ -3318,12 +3398,12 @@
         }
       }
     },
-    "Il backup è la copia completa del database, foto degli scontrini comprese. Salvalo su iCloud Drive o sul Mac: se perdi l'iPhone, una copia solo sul telefono non basta.": {
+    "Il backup contiene tutti i dati in formato aperto (JSON) e le foto degli scontrini: si legge anche su Android o al computer. Salvalo su iCloud Drive, Google Drive o sul Mac: se perdi l'iPhone, una copia solo sul telefono non basta.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The backup is a full copy of the database, receipt photos included. Save it to iCloud Drive or your Mac: if you lose your iPhone, a copy only on the phone isn't enough."
+            "value": "The backup holds all your data in an open format (JSON) plus the receipt photos: it can also be read on Android or a computer. Save it to iCloud Drive, Google Drive or your Mac: if you lose your iPhone, a copy only on the phone isn't enough."
           }
         }
       }
@@ -3384,6 +3464,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Consent is revoked. Transactions already imported are kept."
+          }
+        }
+      }
+    },
+    "Il file bilancio.json non è un backup di Bilancio leggibile da questa versione dell'app.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The bilancio.json file is not a Bilancio backup that this version of the app can read."
           }
         }
       }
@@ -3564,6 +3654,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Monthly amount"
+          }
+        }
+      }
+    },
+    "Impossibile controllare: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't check: %@"
           }
         }
       }
@@ -5034,6 +5134,16 @@
         }
       }
     },
+    "Novità": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's new"
+          }
+        }
+      }
+    },
     "Nuova categoria": {
       "localizations": {
         "en": {
@@ -5833,6 +5943,16 @@
         }
       }
     },
+    "Questa installazione non sa da quale versione è stata compilata: reinstalla con installa.sh per poterla confrontare.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This installation doesn't know which version it was built from: reinstall it with installa.sh to compare."
+          }
+        }
+      }
+    },
     "Questo conto è collegato: il saldo arriva dalla banca e il saldo iniziale non conta.": {
       "localizations": {
         "en": {
@@ -6368,6 +6488,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cash balance"
+          }
+        }
+      }
+    },
+    "Saldo e movimenti restano in %@; nei totali vengono convertiti in euro al cambio BCE più recente.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balance and transactions stay in %@; totals convert them to euros at the latest ECB rate."
           }
         }
       }
@@ -7653,6 +7783,16 @@
         }
       }
     },
+    "Versione installata": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installed version"
+          }
+        }
+      }
+    },
     "Virgola per i decimali (1.234,56)": {
       "localizations": {
         "en": {
@@ -7947,6 +8087,16 @@
         }
       }
     },
+    "iOS non permette a un'app installata con un Apple ID gratuito di aggiornarsi da sola.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS doesn't let an app installed with a free Apple ID update itself."
+          }
+        }
+      }
+    },
     "il %lld": {
       "localizations": {
         "en": {
@@ -8144,6 +8294,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "expires today"
+          }
+        }
+      }
+    },
+    "sconosciuta": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "unknown"
           }
         }
       }
@@ -8376,6 +8536,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "You can still pay %@ into your pension fund by December 31 and keep it deductible (this year: %@ of %@)."
+          }
+        }
+      }
+    },
+    "≈ %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ %@"
+          }
+        }
+      }
+    },
+    "≈ %@ al cambio di oggi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ %@ at today's rate"
           }
         }
       }

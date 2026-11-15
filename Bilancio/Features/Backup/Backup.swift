@@ -2,10 +2,11 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-/// Backup = copia dell'intera cartella del database (store, -wal, -shm, allegati esterni)
+/// Backup = cartella in formato aperto (vedi `BackupAperto`: JSON + foto, leggibile anche su Android o al computer)
 /// in Documents/Backup/Bilancio-AAAA-MM-GG-HHmm/, visibile in File › Sul mio iPhone › Bilancio.
-/// Il ripristino viene preparato in Application Support/RipristinoInSospeso/ e applicato
-/// al riavvio, prima di aprire SwiftData.
+/// Il ripristino ricostruisce un database nuovo in Application Support/RipristinoInSospeso/, che viene
+/// messo al posto di quello attuale al riavvio, prima di aprire SwiftData.
+/// Si ripristinano anche i backup del vecchio formato (copia della cartella del database).
 enum Backup {
 
     // Percorsi calcolati senza toccare `Persistenza` (niente effetti collaterali prima del container).
@@ -41,14 +42,19 @@ enum Backup {
 
     // MARK: Creazione
 
-    /// Copia la cartella del database in un nuovo backup locale. Salvare il contesto prima.
+    /// Scrive un nuovo backup locale in formato aperto. Salvare il contesto prima.
     @discardableResult
-    static func crea() throws -> URL {
+    static func crea(in context: ModelContext) throws -> URL {
         let fm = FileManager.default
-        try fm.createDirectory(at: cartellaBackup, withIntermediateDirectories: true)
         let destinazione = cartellaBackup.appending(path: "Bilancio-" + timbro(Date()), directoryHint: .isDirectory)
         if fm.fileExists(atPath: destinazione.path) { try fm.removeItem(at: destinazione) }
-        try fm.copyItem(at: cartellaDatabase, to: destinazione)
+        try fm.createDirectory(at: destinazione, withIntermediateDirectories: true)
+        do {
+            try BackupAperto.scrivi(context, in: destinazione)
+        } catch {
+            try? fm.removeItem(at: destinazione)   // niente backup a metà nell'elenco
+            throw error
+        }
         UserDefaults.standard.set(Date(), forKey: "backup.ultimo")
         // ponytail: si tengono gli ultimi 4 backup locali (manuali e automatici insieme); quelli importanti vanno esportati.
         for vecchio in elenco().dropFirst(4) { try? fm.removeItem(at: vecchio) }
@@ -56,10 +62,10 @@ enum Backup {
     }
 
     /// Backup locale settimanale, chiamato quando l'app va in background.
-    static func automaticoSeServe() {
+    static func automaticoSeServe(in context: ModelContext) {
         if let u = ultimoBackup, Date().timeIntervalSince(u) < 7 * 86_400 { return }
-        guard FileManager.default.fileExists(atPath: cartellaDatabase.appending(path: nomeStore).path) else { return }
-        _ = try? crea()
+        guard ((try? context.fetchCount(FetchDescriptor<Movimento>())) ?? 0) > 0 else { return }
+        _ = try? crea(in: context)
     }
 
     /// Backup locali, dal più recente.
@@ -83,10 +89,10 @@ enum Backup {
 
     enum ErroreBackup: LocalizedError {
         case nonValido
-        var errorDescription: String? { String(localized: "La cartella scelta non è un backup di Bilancio (manca \(Backup.nomeStore)).") }
+        var errorDescription: String? { String(localized: "La cartella scelta non è un backup di Bilancio (manca \(BackupAperto.fileDati)).") }
     }
 
-    /// Copia un backup (anche da iCloud Drive) in RipristinoInSospeso: verrà applicato alla prossima apertura.
+    /// Prepara in RipristinoInSospeso il database ricostruito dal backup (anche da iCloud Drive): verrà applicato alla prossima apertura.
     static func preparaRipristino(da sorgente: URL) throws {
         let accesso = sorgente.startAccessingSecurityScopedResource()
         defer { if accesso { sorgente.stopAccessingSecurityScopedResource() } }
@@ -97,10 +103,25 @@ enum Backup {
         NSFileCoordinator().coordinate(readingItemAt: sorgente, options: [], error: &erroreCoordinatore) { url in
             do {
                 let fm = FileManager.default
-                guard fm.fileExists(atPath: url.appending(path: nomeStore).path) else { throw ErroreBackup.nonValido }
                 if fm.fileExists(atPath: inSospeso.path) { try fm.removeItem(at: inSospeso) }
                 try fm.createDirectory(at: supporto, withIntermediateDirectories: true)
-                try fm.copyItem(at: url, to: inSospeso)
+                if fm.fileExists(atPath: url.appending(path: BackupAperto.fileDati).path) {
+                    // formato aperto: database nuovo costruito da bilancio.json e foto/
+                    try fm.createDirectory(at: inSospeso, withIntermediateDirectories: true)
+                    do {
+                        let config = ModelConfiguration(schema: Persistenza.schema, url: inSospeso.appending(path: nomeStore))
+                        let contenitore = try ModelContainer(for: Persistenza.schema, configurations: config)
+                        try BackupAperto.leggi(da: url, in: ModelContext(contenitore))
+                    } catch {
+                        try? fm.removeItem(at: inSospeso)
+                        throw error
+                    }
+                } else if fm.fileExists(atPath: url.appending(path: nomeStore).path) {
+                    // vecchio formato: copia della cartella del database
+                    try fm.copyItem(at: url, to: inSospeso)
+                } else {
+                    throw ErroreBackup.nonValido
+                }
             } catch {
                 erroreCopia = error
             }

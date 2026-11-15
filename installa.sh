@@ -11,10 +11,18 @@ TEAM=$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/n
 DEVICE=$(xcrun devicectl list devices 2>/dev/null | awk '/iPhone/ && /available|connected/ && !/simulated/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) { print $i; exit } }')
 [ -n "$DEVICE" ] || { echo "Nessun iPhone collegato e sbloccato."; exit 1; }
 
+# versione nuova da GitHub (solo se non ci sono modifiche locali in sospeso)
+if [ -z "$(git status --porcelain --untracked-files=no)" ]; then
+  git pull --ff-only --quiet origin main && echo "Versione aggiornata da GitHub."
+else
+  echo "Modifiche locali presenti: installo questa versione senza scaricare da GitHub."
+fi
+COMMIT=$(git rev-parse HEAD)
+
 echo "Compilo per l'iPhone $DEVICE (team $TEAM)…"
 xcodebuild -project Bilancio.xcodeproj -scheme Bilancio -configuration Release \
   -destination "id=$DEVICE" -derivedDataPath build/device -allowProvisioningUpdates \
-  DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic COMPILER_INDEX_STORE_ENABLE=NO build -quiet
+  DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic BILANCIO_COMMIT="$COMMIT" COMPILER_INDEX_STORE_ENABLE=NO build -quiet
 
 APP=build/device/Build/Products/Release-iphoneos/Bilancio.app
 echo "Installo…"

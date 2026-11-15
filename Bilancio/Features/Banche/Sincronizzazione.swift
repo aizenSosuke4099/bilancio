@@ -108,7 +108,9 @@ enum Sincronizzazione {
         d.fetchLimit = 1
         if ((try? context.fetchCount(d)) ?? 0) > 0 { return false }
 
-        if let esistente = Abbinamento.movimentoEsistentePer(importo: importo, data: data, conto: conto, in: context) {
+        // importo nella valuta del conto; gli abbinamenti ragionano in euro
+        if let esistente = Abbinamento.movimentoEsistentePer(importo: Contabilita.inEuro(importo, valuta: conto?.valuta ?? "EUR"),
+                                                              data: data, conto: conto, in: context) {
             esistente.idEsterno = idEsterno
             esistente.descrizioneOriginale = descrizione
             if esistente.conto == nil { esistente.conto = conto }
@@ -126,13 +128,14 @@ enum Sincronizzazione {
                               origine: Origine, suggerimento s: Suggerimento, in context: ModelContext) {
         let m = Movimento(data: data, importo: importo, tipo: s.tipo, titolo: s.titolo, origine: origine,
                           stato: .daConfermare, conto: conto, categoria: s.categoria)
+        Contabilita.imposta(m, importoInValuta: importo, valuta: conto?.valuta ?? "EUR")
         m.idEsterno = idEsterno
         m.descrizioneOriginale = descrizione
         context.insert(m)
         // l'altra metà di un giroconto tra conti propri (se una regola imparata dice altro, vince la regola)
         if s.tipo == .giroconto || !s.appreso { Abbinamento.segnaGiroconto(m, in: context) }
         if s.prelievoContanti && importo < 0 {
-            let contanti = Movimento(data: data, importo: -importo, tipo: .giroconto, titolo: String(localized: "Prelievo"), origine: origine,
+            let contanti = Movimento(data: data, importo: -m.importo, tipo: .giroconto, titolo: String(localized: "Prelievo"), origine: origine,
                                      stato: .confermato, conto: DatiIniziali.contoContanti(in: context))
             contanti.descrizioneOriginale = descrizione
             context.insert(contanti)

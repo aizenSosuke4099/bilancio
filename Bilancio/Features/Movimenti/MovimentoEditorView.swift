@@ -25,7 +25,8 @@ struct MovimentoEditorView: View {
     init(movimento: Movimento? = nil) {
         self.movimento = movimento
         _tipo = State(initialValue: movimento?.tipo ?? .spesa)
-        _importoTesto = State(initialValue: movimento.map { abs($0.importo).formatted(.number.precision(.fractionLength(2))) } ?? "")
+        // conti in valuta estera: si mostra e si modifica l'importo nella valuta del conto
+        _importoTesto = State(initialValue: movimento.map { abs($0.importoOriginale ?? $0.importo).formatted(.number.precision(.fractionLength(2))) } ?? "")
         _positivo = State(initialValue: (movimento?.importo ?? -1) > 0)
         _data = State(initialValue: movimento?.data ?? Date())
         _titolo = State(initialValue: movimento?.titolo ?? "")
@@ -35,6 +36,8 @@ struct MovimentoEditorView: View {
     }
 
     private var daConfermare: Bool { movimento?.daConfermare ?? false }
+    /// Valuta del conto scelto: l'importo si inserisce in questa valuta.
+    private var valuta: String { conto?.valuta ?? "EUR" }
     private var conCategoria: Bool { tipo == .spesa || tipo == .entrata }
 
     /// Importo con il segno deciso dal tipo (si inserisce sempre positivo).
@@ -83,7 +86,7 @@ struct MovimentoEditorView: View {
                 .listRowSeparator(.hidden)
 
                 HStack {
-                    Text("€").font(.title2.bold()).foregroundStyle(.secondary)
+                    Text(valuta == "EUR" ? "€" : valuta).font(.title2.bold()).foregroundStyle(.secondary)
                     TextField("0,00", text: $importoTesto)
                         .keyboardType(.decimalPad)
                         .font(.title2.bold().monospacedDigit())
@@ -192,7 +195,8 @@ struct MovimentoEditorView: View {
             // conferma(nuovoImporto:) riproporziona anche le operazioni PAC collegate se l'importo cambia;
             // per "salva senza confermare" si rimette lo stato com'era.
             let eraDaConfermare = m.daConfermare
-            m.conferma(nuovoImporto: nuovoImporto)
+            m.conferma(nuovoImporto: Contabilita.inEuro(nuovoImporto, valuta: valuta))
+            Contabilita.imposta(m, importoInValuta: nuovoImporto, valuta: valuta)
             if !confermando && eraDaConfermare { m.stato = .daConfermare }
             m.tipo = tipo
             m.data = data
@@ -204,6 +208,7 @@ struct MovimentoEditorView: View {
             if tipo == .giroconto { Abbinamento.segnaGiroconto(m, in: context) }
         } else {
             let m = Movimento(data: data, importo: nuovoImporto, tipo: tipo, titolo: titoloPulito, origine: .manuale, stato: .confermato)
+            Contabilita.imposta(m, importoInValuta: nuovoImporto, valuta: valuta)
             m.nota = nota
             context.insert(m)
             // relazioni dopo l'inserimento, così stanno nello stesso contesto

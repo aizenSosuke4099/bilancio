@@ -41,7 +41,8 @@ enum Prezzi {
                 riusciti += 1
             }
         }
-        for valuta in Set(strumenti.map(\.valuta)) where valuta != "EUR" {
+        let conti = (try? context.fetch(FetchDescriptor<Conto>(predicate: #Predicate { !$0.archiviato }))) ?? []
+        for valuta in Set(strumenti.map(\.valuta) + conti.map(\.valuta)) where valuta != "EUR" {
             tentati += 1
             if let c = await cambio(valuta) {
                 Portafoglio.salvaCambio(valuta, c)

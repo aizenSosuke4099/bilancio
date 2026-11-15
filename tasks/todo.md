@@ -100,3 +100,20 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - Numeri e date: formato della lingua del telefono (niente `.locale(...)` fisso); gli importi restano in euro.
   `localeIT` serve solo a leggere scontrini, estratti conto e parole chiave, che restano italiani.
 - Prova in inglese: `-demo -tab N -AppleLanguages (en)` dopo aver disinstallato l'app (i dati demo si creano solo a database vuoto).
+
+### Valute, aggiornamenti, backup aperto (15/11 sera)
+- Conti in valuta estera (es. un conto svizzero in CHF): `Conto.valuta`; `Movimento.importo` resta SEMPRE in euro (convertito con
+  `Contabilita.inEuro` all'ultimo cambio BCE), l'originale in `importoOriginale`/`valutaOriginale`.
+  Saldo: `Contabilita.saldoInValuta` (valuta del conto) e `saldo` (euro al cambio di oggi). Giroconti tra valute diverse: margine 3%.
+- "Aggiorna app" (Altro): confronta il commit scritto da `installa.sh` nell'Info.plist (`BilancioCommit`) con `main` su GitHub.
+  iOS non permette l'auto-aggiornamento: `installa.sh` fa `git pull` (se non ci sono modifiche locali) e reinstalla.
+- Backup = cartella in formato aperto (`BackupAperto`): `bilancio.json` + `foto/` + `movimenti.csv` + `LEGGIMI.txt`.
+  Il ripristino costruisce un database nuovo da JSON in RipristinoInSospeso (applicato al riavvio); i vecchi backup
+  (copia della cartella del database) si ripristinano ancora. Esclusi chiave ed Application ID di Enable Banking.
+- Prove: `-verifica` (giroconti, CHF, giro completo del backup su dati demo); `-provaRipristino` (backup del database vero +
+  ripristino in sospeso; al riavvio dopo, confrontare i conteggi con sqlite3 tra `Bilancio/` e `Bilancio-prima-del-ripristino-*`).
+- Simulatore: l'app impiega 30-40 s ad apparire e intanto iOS mostra l'ultima istantanea (anche in un'altra lingua):
+  aspettare ~60 s prima degli screenshot. Un avviso di sistema mai chiuso resta a schermo anche dopo la disinstallazione: riavviare il simulatore.
+- Traduzioni: `xcodebuild` non aggiorna il catalogo; le chiavi nuove vanno aggiunte a mano (le chiavi estratte sono nei
+  `*.stringsdata` in build/dd/…/Objects-normal/arm64: confrontarle col catalogo). Il file va riscritto con
+  `json.dumps(…, ensure_ascii=False, indent=2, separators=(',', ': '))` + "\n" mantenendo l'ordine delle chiavi.
