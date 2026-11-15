@@ -480,7 +480,8 @@ fileprivate struct AbbinamentoContiView: View {
                 conto = esistente
             } else {
                 let tipo: TipoConto = a.cash_account_type == "CARD" ? .carta : (a.cash_account_type == "SVGS" ? .remunerato : .corrente)
-                conto = Conto(nome: a.name ?? banca.name, tipo: tipo, istituto: banca.name, ordine: (conti.map(\.ordine).max() ?? 0) + 1)
+                conto = Conto(nome: Sincronizzazione.nomeConto(banca: banca.name, tipo: tipo, valuta: a.currency), tipo: tipo,
+                              istituto: banca.name, ordine: (conti.map(\.ordine).max() ?? 0) + 1)
                 conto.valuta = a.currency ?? "EUR"
                 context.insert(conto)
             }

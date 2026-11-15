@@ -48,6 +48,7 @@ enum Avvio {
         let ctx = Persistenza.container.mainContext
         DatiIniziali.inserisciSeVuoto(ctx)
         DatiIniziali.aggiornaCategorie(ctx)
+        Sincronizzazione.correggiNomiConti(in: ctx)
         GeneratoreRicorrenze.genera(in: ctx)
         if !ProcessInfo.processInfo.arguments.contains("-demo") { ScadenzaFirma.programmaNotifiche() }  // in demo il permesso coprirebbe lo schermo
         await Prezzi.aggiornaSeVecchi(in: ctx)

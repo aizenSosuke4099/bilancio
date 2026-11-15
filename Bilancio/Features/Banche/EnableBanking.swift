@@ -39,9 +39,9 @@ enum EnableBanking {
         let cash_account_type: String?
         var id: String { uid ?? UUID().uuidString }
         var iban: String? { account_id?.iban ?? account_id?.other?.identification }
-        /// Nome leggibile: nome del conto, prodotto o IBAN.
+        /// Nome leggibile: prodotto, dettagli, IBAN; il "nome" per ultimo perché alcune banche ci mettono l'intestatario.
         var descrizione: String {
-            [name, product, details].compactMap { $0 }.first { !$0.isEmpty } ?? iban ?? String(localized: "Conto")
+            [product, details].compactMap { $0 }.first { !$0.isEmpty } ?? iban ?? name ?? String(localized: "Conto")
         }
     }
 
@@ -163,20 +163,21 @@ enum EnableBanking {
         let _: R = try await chiama("DELETE", "/sessions/\(id)")
     }
 
-    static func saldi(conto uid: String) async throws -> [Saldo] {
+    /// `presente`: l'utente sta usando l'app (non è un aggiornamento in background), vedi `intestazioniPSU`.
+    static func saldi(conto uid: String, presente: Bool) async throws -> [Saldo] {
         nonisolated struct R: Decodable { let balances: [Saldo] }
-        let r: R = try await chiama("GET", "/accounts/\(uid)/balances")
+        let r: R = try await chiama("GET", "/accounts/\(uid)/balances", presente: presente)
         return r.balances
     }
 
     /// Tutte le transazioni dal giorno indicato (segue continuation_key).
-    static func transazioni(conto uid: String, dal: Date) async throws -> [Transazione] {
+    static func transazioni(conto uid: String, dal: Date, presente: Bool) async throws -> [Transazione] {
         var tutte: [Transazione] = []
         var chiave: String?
         for _ in 0..<50 { // ponytail: tetto alle pagine per non girare all'infinito su una banca che sbaglia
             var q = ["date_from": giornoISO(dal)]
             if let chiave { q["continuation_key"] = chiave }
-            let p: PaginaTransazioni = try await chiama("GET", "/accounts/\(uid)/transactions", query: q)
+            let p: PaginaTransazioni = try await chiama("GET", "/accounts/\(uid)/transactions", query: q, presente: presente)
             tutte += p.transactions
             guard let k = p.continuation_key, !k.isEmpty else { break }
             chiave = k
@@ -192,7 +193,32 @@ enum EnableBanking {
 
     // MARK: HTTP
 
-    private static func chiama<T: Decodable>(_ metodo: String, _ percorso: String, query: [String: String] = [:], corpo: [String: Any]? = nil) async throws -> T {
+    /// Intestazioni PSU: dicono alla banca che l'utente sta usando l'app, così non vale il limite di ~4 letture
+    /// al giorno degli aggiornamenti in background (errore 429 ASPSP_RATE_LIMIT_EXCEEDED). Mai in background.
+    static func intestazioniPSU() -> [String: String] {
+        var h = ["Psu-User-Agent": "Bilancio/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1") (iOS \(ProcessInfo.processInfo.operatingSystemVersionString))"]
+        if let ip = indirizzoIP() { h["Psu-Ip-Address"] = ip }
+        return h
+    }
+
+    /// IPv4 del Wi-Fi o della rete cellulare.
+    // ponytail: indirizzo dell'interfaccia (in Wi-Fi è privato); se una banca pretendesse l'IP pubblico servirebbe chiederlo a un servizio esterno
+    static func indirizzoIP() -> String? {
+        var lista: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&lista) == 0, let primo = lista else { return nil }
+        defer { freeifaddrs(lista) }
+        var trovati: [String: String] = [:]
+        for p in sequence(first: primo, next: { $0.pointee.ifa_next }) {
+            guard let a = p.pointee.ifa_addr, a.pointee.sa_family == UInt8(AF_INET) else { continue }
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            guard getnameinfo(a, socklen_t(a.pointee.sa_len), &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 else { continue }
+            trovati[String(cString: p.pointee.ifa_name)] = String(decoding: host.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+        }
+        return trovati["en0"] ?? trovati["pdp_ip0"] ?? trovati.first { $0.key != "lo0" }?.value
+    }
+
+    private static func chiama<T: Decodable>(_ metodo: String, _ percorso: String, query: [String: String] = [:], corpo: [String: Any]? = nil,
+                                             presente: Bool = false) async throws -> T {
         guard let appId = CredenzialiEnableBanking.applicationId, let pem = CredenzialiEnableBanking.chiavePrivata else {
             throw Errore.credenzialiMancanti
         }
@@ -202,6 +228,7 @@ enum EnableBanking {
         req.httpMethod = metodo
         req.setValue("Bearer " + (try jwt(applicationId: appId, chiavePEM: pem)), forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
+        if presente { for (k, v) in intestazioniPSU() { req.setValue(v, forHTTPHeaderField: k) } }
         if let corpo {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = try JSONSerialization.data(withJSONObject: corpo)

@@ -4,11 +4,13 @@ import BackgroundTasks
 import UserNotifications
 
 /// Scarica saldi e movimenti contabilizzati dalle banche collegate (Enable Banking).
-/// All'apertura e in background, al massimo ogni 6 ore (molte banche concedono 4 accessi al giorno senza l'utente).
+/// In background al massimo ogni 6 ore (molte banche concedono 4 accessi al giorno senza l'utente);
+/// con l'app aperta l'utente è presente (intestazioni PSU, niente limite) e si aggiorna ogni 30 minuti.
 enum Sincronizzazione {
 
     static let idTask = "bilancio.sync"
     static let intervallo: TimeInterval = 6 * 3600
+    static let intervalloConUtente: TimeInterval = 30 * 60
     private static var registrato = false
     private static var inCorso = false
 
@@ -21,7 +23,7 @@ enum Sincronizzazione {
             programmaBackground()
             let lavoro = Task { @MainActor in
                 let ctx = Persistenza.container.mainContext
-                await sincronizza(in: ctx, forza: false)
+                await sincronizza(in: ctx, forza: false, presente: false)
                 try? ctx.save()
                 task.setTaskCompleted(success: true)
             }
@@ -35,18 +37,42 @@ enum Sincronizzazione {
         try? BGTaskScheduler.shared.submit(richiesta)
     }
 
+    // MARK: Nomi dei conti
+
+    /// "Banca X", "Banca X – carta", "Banca Y CHF". Non si usa il nome del conto dato dalla banca:
+    /// alcune banche italiane ci mettono l'intestatario.
+    static func nomeConto(banca: String, tipo: TipoConto, valuta: String?) -> String {
+        var nome = banca
+        if tipo == .carta { nome += " – " + String(localized: "carta") }
+        if let v = valuta, v != "EUR" { nome += " " + v }
+        return nome
+    }
+
+    /// Una volta sola: i conti collegati che condividono lo stesso nome (l'intestatario) prendono quello della banca.
+    static func correggiNomiConti(in context: ModelContext) {
+        let chiave = "conti.nomiDallaBanca"
+        guard !UserDefaults.standard.bool(forKey: chiave) else { return }
+        let collegati = ((try? context.fetch(FetchDescriptor<Conto>())) ?? []).filter { $0.ebAccountUid != nil && !$0.istituto.isEmpty }
+        for (_, gruppo) in Dictionary(grouping: collegati, by: \.nome) where gruppo.count > 1 {
+            for c in gruppo { c.nome = nomeConto(banca: c.istituto, tipo: c.tipo, valuta: c.valuta) }
+        }
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: chiave)
+    }
+
     // MARK: Sincronizzazione
 
+    /// All'apertura dell'app (utente presente).
     static func sincronizzaSeServe(in context: ModelContext) async {
-        await sincronizza(in: context, forza: false)
+        await sincronizza(in: context, forza: false, presente: true)
     }
 
-    /// "Sincronizza ora": ignora l'intervallo di 6 ore.
+    /// "Sincronizza ora" e subito dopo un collegamento: ignora l'intervallo.
     static func sincronizzaOra(in context: ModelContext) async {
-        await sincronizza(in: context, forza: true)
+        await sincronizza(in: context, forza: true, presente: true)
     }
 
-    private static func sincronizza(in context: ModelContext, forza: Bool) async {
+    private static func sincronizza(in context: ModelContext, forza: Bool, presente: Bool) async {
         let connessioni = (try? context.fetch(FetchDescriptor<ConnessioneBanca>())) ?? []
         await programmaNotificheScadenza(connessioni)
         guard !inCorso, CredenzialiEnableBanking.complete else { return }
@@ -55,9 +81,9 @@ enum Sincronizzazione {
 
         let ora = Date()
         for c in connessioni where c.scadenza > ora {
-            if !forza, let u = c.ultimaSync, ora.timeIntervalSince(u) < intervallo { continue }
+            if !forza, let u = c.ultimaSync, ora.timeIntervalSince(u) < (presente ? intervalloConUtente : intervallo) { continue }
             do {
-                try await sincronizza(c, in: context)
+                try await sincronizza(c, presente: presente, in: context)
                 c.ultimaSync = ora
                 registraErrore(nil, per: c)
             } catch is CancellationError {
@@ -69,18 +95,18 @@ enum Sincronizzazione {
         }
     }
 
-    private static func sincronizza(_ connessione: ConnessioneBanca, in context: ModelContext) async throws {
+    private static func sincronizza(_ connessione: ConnessioneBanca, presente: Bool, in context: ModelContext) async throws {
         let conti = (try? context.fetch(FetchDescriptor<Conto>())) ?? []
         // ultima sync − 5 giorni (le banche contabilizzano in ritardo); la prima volta 90 giorni
         let dal = connessione.ultimaSync.map { $0.aggiungendo(giorni: -5) } ?? Date().aggiungendo(giorni: -90)
         for uid in connessione.accountUids {
             guard let conto = conti.first(where: { $0.ebAccountUid == uid }) else { continue } // conto non abbinato
-            if let s = EnableBanking.saldoPreferito(try await EnableBanking.saldi(conto: uid)), let v = Double(s.balance_amount.amount) {
+            if let s = EnableBanking.saldoPreferito(try await EnableBanking.saldi(conto: uid, presente: presente)), let v = Double(s.balance_amount.amount) {
                 conto.saldoBanca = v
                 conto.saldoBancaData = s.last_change_date_time.flatMap(EnableBanking.dataOra(da:)) ?? s.reference_date.flatMap(EnableBanking.giorno(da:)) ?? Date()
             }
             var impronteViste: [String: Int] = [:]
-            for t in try await EnableBanking.transazioni(conto: uid, dal: dal) where t.status == nil || t.status == "BOOK" {
+            for t in try await EnableBanking.transazioni(conto: uid, dal: dal, presente: presente) where t.status == nil || t.status == "BOOK" {
                 guard let data = t.data else { continue }
                 let importo = t.importoConSegno
                 let descrizione = t.descrizione

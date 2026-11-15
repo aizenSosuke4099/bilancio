@@ -7976,6 +7976,16 @@
         }
       }
     },
+    "carta": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "card"
+          }
+        }
+      }
+    },
     "chiave RSA non leggibile": {
       "localizations": {
         "en": {
