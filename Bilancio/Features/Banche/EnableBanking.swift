@@ -363,6 +363,17 @@ enum CredenzialiEnableBanking {
 
     static var complete: Bool { !(applicationId ?? "").isEmpty && chiavePrivata != nil }
 
+    /// Con la chiave già nel Portachiavi, una copia .pem lasciata nella cartella dell'app (visibile in File e
+    /// salvata nei backup di iCloud del telefono) è solo un rischio: si cancella.
+    static func eliminaCopieChiave() {
+        guard chiavePrivata != nil else { return }
+        let fm = FileManager.default
+        for f in (try? fm.contentsOfDirectory(at: URL.documentsDirectory, includingPropertiesForKeys: nil)) ?? []
+        where f.pathExtension.lowercased() == "pem" {
+            try? fm.removeItem(at: f)
+        }
+    }
+
     private static func base(_ account: String) -> [CFString: Any] {
         [kSecClass: kSecClassGenericPassword, kSecAttrService: servizio, kSecAttrAccount: account]
     }

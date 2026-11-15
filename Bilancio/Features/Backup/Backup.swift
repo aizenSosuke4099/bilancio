@@ -46,6 +46,7 @@ enum Backup {
     @discardableResult
     static func crea(in context: ModelContext) throws -> URL {
         let fm = FileManager.default
+        try proteggiCartellaBackup()
         let destinazione = cartellaBackup.appending(path: "Bilancio-" + timbro(Date()), directoryHint: .isDirectory)
         if fm.fileExists(atPath: destinazione.path) { try fm.removeItem(at: destinazione) }
         try fm.createDirectory(at: destinazione, withIntermediateDirectories: true)
@@ -59,6 +60,18 @@ enum Backup {
         // ponytail: si tengono gli ultimi 4 backup locali (manuali e automatici insieme); quelli importanti vanno esportati.
         for vecchio in elenco().dropFirst(4) { try? fm.removeItem(at: vecchio) }
         return destinazione
+    }
+
+    /// I backup locali sono cifrati da iOS anche a telefono bloccato (protezione "completa": leggibili solo da sbloccato).
+    /// Si scrivono e si leggono solo con l'app aperta, quindi non serve altro. I file nuovi ereditano la protezione
+    /// della cartella; quelli già presenti si aggiornano qui.
+    private static func proteggiCartellaBackup() throws {
+        let fm = FileManager.default
+        let completa: [FileAttributeKey: Any] = [.protectionKey: FileProtectionType.complete]
+        try fm.createDirectory(at: cartellaBackup, withIntermediateDirectories: true, attributes: completa)
+        try? fm.setAttributes(completa, ofItemAtPath: cartellaBackup.path)
+        let e = fm.enumerator(at: cartellaBackup, includingPropertiesForKeys: nil)
+        while let f = e?.nextObject() as? URL { try? fm.setAttributes(completa, ofItemAtPath: f.path) }
     }
 
     /// Backup locale settimanale, chiamato quando l'app va in background.

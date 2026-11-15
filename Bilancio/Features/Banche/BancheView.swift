@@ -130,7 +130,12 @@ struct BancheView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Annulla") { incollaChiave = false } }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Salva") { salvaChiave(testoChiave); incollaChiave = false }
+                        Button("Salva") {
+                            // la chiave non deve restare negli appunti (né in quelli condivisi col Mac)
+                            if salvaChiave(testoChiave) { UIPasteboard.general.items = [] }
+                            testoChiave = ""
+                            incollaChiave = false
+                        }
                             .disabled(testoChiave.isEmpty)
                     }
                 }

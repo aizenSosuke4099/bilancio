@@ -151,9 +151,10 @@ enum Sincronizzazione {
 
     /// Crea il movimento da confermare; se è un prelievo, anche l'entrata (giroconto) sul conto Contanti.
     static func creaMovimento(data: Date, importo: Double, descrizione: String, idEsterno: String, conto: Conto?,
-                              origine: Origine, suggerimento s: Suggerimento, in context: ModelContext) {
+                              origine: Origine, suggerimento s: Suggerimento, stato: StatoMovimento = .daConfermare,
+                              in context: ModelContext) {
         let m = Movimento(data: data, importo: importo, tipo: s.tipo, titolo: s.titolo, origine: origine,
-                          stato: .daConfermare, conto: conto, categoria: s.categoria)
+                          stato: stato, conto: conto, categoria: s.categoria)
         Contabilita.imposta(m, importoInValuta: importo, valuta: conto?.valuta ?? "EUR")
         m.idEsterno = idEsterno
         m.descrizioneOriginale = descrizione

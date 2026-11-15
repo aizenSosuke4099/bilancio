@@ -503,18 +503,12 @@
         }
       }
     },
-    "%lld movimenti letti, %lld già presenti (deselezionati). Scorri su una riga per invertirne il segno.": {
+    "%lld movimenti letti, %lld già presenti (deselezionati).": {
       "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$lld movimenti letti, %2$lld già presenti (deselezionati). Scorri su una riga per invertirne il segno."
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld transactions read, %lld already present (deselected). Swipe on a row to flip its sign."
+            "value": "%1$lld transactions read, %2$lld already present (unselected)."
           }
         }
       }
@@ -2063,6 +2057,26 @@
         }
       }
     },
+    "Conferma e importa %lld movimenti": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm and import %lld transactions"
+          }
+        }
+      }
+    },
+    "Conferma e importa 1 movimento": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm and import 1 transaction"
+          }
+        }
+      }
+    },
     "Conferma e salva": {
       "localizations": {
         "en": {
@@ -2363,6 +2377,16 @@
         }
       }
     },
+    "Correggi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        }
+      }
+    },
     "Costo del cambio %@ → %@": {
       "localizations": {
         "en": {
@@ -2469,6 +2493,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "From account"
+          }
+        }
+      }
+    },
+    "Dall'estratto conto": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From the statement"
           }
         }
       }
@@ -2890,6 +2924,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Income"
+          }
+        }
+      }
+    },
+    "Entrata (soldi in arrivo)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Income (money coming in)"
           }
         }
       }
@@ -3598,26 +3642,6 @@
         }
       }
     },
-    "Importa %lld movimenti": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import %lld transactions"
-          }
-        }
-      }
-    },
-    "Importa 1 movimento": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import 1 transaction"
-          }
-        }
-      }
-    },
     "Importa estratto conto": {
       "localizations": {
         "en": {
@@ -3634,6 +3658,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Import .pem file"
+          }
+        }
+      }
+    },
+    "Importa questa riga": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import this line"
           }
         }
       }
@@ -4288,16 +4322,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Read with rules"
-          }
-        }
-      }
-    },
-    "Li trovi da confermare nel mese, con tipo e categoria già proposti.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You'll find them to confirm in the month, with type and category already suggested."
           }
         }
       }
@@ -7024,6 +7048,16 @@
         }
       }
     },
+    "Sono già confermati, con le tue correzioni.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "They are already confirmed, with your corrections."
+          }
+        }
+      }
+    },
     "Sostituisce tutti i dati attuali con quelli del backup. I dati attuali vengono conservati in una copia di sicurezza.": {
       "localizations": {
         "en": {
@@ -7235,6 +7269,16 @@
         }
       }
     },
+    "Titolo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title"
+          }
+        }
+      }
+    },
     "Titolo (negozio o controparte)": {
       "localizations": {
         "en": {
@@ -7251,6 +7295,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tap a point on the chart to see the purchase and its receipt."
+          }
+        }
+      }
+    },
+    "Tocca una riga per correggere titolo, tipo, categoria, data o importo: la correzione vale anche per le righe con la stessa descrizione e l'app la ricorda. Il cerchio include o esclude la riga.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a line to fix its title, type, category, date or amount: the fix also applies to lines with the same description and the app remembers it. The circle includes or excludes the line."
           }
         }
       }
