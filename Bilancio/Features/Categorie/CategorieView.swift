@@ -29,7 +29,7 @@ struct CategorieView: View {
         }
     }
 
-    private func sezione(_ tipo: TipoMovimento, titolo: String) -> some View {
+    private func sezione(_ tipo: TipoMovimento, titolo: LocalizedStringKey) -> some View {
         let elenco = categorie.filter { $0.tipo == tipo }
         return Section {
             ForEach(elenco) { c in
@@ -142,7 +142,7 @@ private struct EditorCategoria: View {
                     HStack {
                         Text("Budget mensile")
                         Spacer()
-                        TextField("nessuno", value: $budget, format: .number.precision(.fractionLength(0...2)).locale(localeIT))
+                        TextField("nessuno", value: $budget, format: .number.precision(.fractionLength(0...2)))
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                         Text("€").foregroundStyle(.secondary)

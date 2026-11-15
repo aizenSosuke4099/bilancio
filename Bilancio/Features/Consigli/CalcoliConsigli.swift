@@ -46,7 +46,9 @@ enum CalcoliConsigli {
     }
 
     /// Articolo davanti a un numero ("il 33%", "l'8%", "l'11%"): si elide davanti a 1, 8, 11, 18, 80–89.
+    /// Se l'app non è in italiano restituisce il numero senza articolo.
     static func conArticolo(_ numero: String, normale: String = "il ", eliso: String = "l'") -> String {
+        guard Bundle.main.preferredLocalizations.first == "it" else { return numero }
         let intero = Int(numero.prefix { $0.isNumber }) ?? 0
         let vocale = [1, 8, 11, 18].contains(intero) || (80...89).contains(intero) || (800...899).contains(intero)
         return (vocale ? eliso : normale) + numero
@@ -74,11 +76,15 @@ enum CalcoliConsigli {
         precondition(inflazionePersonale([]) == nil)
         // interessi: 6.000 € al 2,25% → 11,25 €/mese
         precondition(circa(interessiMensili(saldo: 6000, tassoAnnuo: 2.25), 11.25))
-        // articoli
-        precondition(conArticolo("33%") == "il 33%")
-        precondition(conArticolo("8%") == "l'8%")
-        precondition(conArticolo("11%") == "l'11%")
-        precondition(conArticolo("1,9%", normale: "del ", eliso: "dell'") == "dell'1,9%")
+        // articoli: solo con l'app in italiano, nelle altre lingue il numero resta senza
+        if Bundle.main.preferredLocalizations.first == "it" {
+            precondition(conArticolo("33%") == "il 33%")
+            precondition(conArticolo("8%") == "l'8%")
+            precondition(conArticolo("11%") == "l'11%")
+            precondition(conArticolo("1,9%", normale: "del ", eliso: "dell'") == "dell'1,9%")
+        } else {
+            precondition(conArticolo("8%") == "8%")
+        }
     }
     #endif
 }

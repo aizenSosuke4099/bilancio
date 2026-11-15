@@ -102,8 +102,8 @@ fileprivate struct RigaConto: View {
 
     private var sottotitolo: String {
         var parti = [conto.istituto.isEmpty ? conto.tipo.etichetta : conto.istituto]
-        if conto.ebAccountUid != nil, let d = conto.saldoBancaData { parti.append("collegato, saldo al \(d.giornoMese)") }
-        if let t = conto.tassoAnnuo, t > 0 { parti.append("\(t.formatted(.number.precision(.fractionLength(0...2)).locale(localeIT)))% lordo") }
+        if conto.ebAccountUid != nil, let d = conto.saldoBancaData { parti.append(String(localized: "collegato, saldo al \(d.giornoMese)")) }
+        if let t = conto.tassoAnnuo, t > 0 { parti.append(String(localized: "\(t.formatted(.number.precision(.fractionLength(0...2))))% lordo")) }
         return parti.joined(separator: " · ")
     }
 }
@@ -223,8 +223,8 @@ fileprivate struct EditorConto: View {
         nome = c.nome
         tipo = c.tipo
         istituto = c.istituto
-        saldoIniziale = c.saldoIniziale == 0 ? "" : c.saldoIniziale.formatted(.number.precision(.fractionLength(2)).locale(localeIT))
-        tasso = c.tassoAnnuo.map { $0.formatted(.number.precision(.fractionLength(0...2)).locale(localeIT)) } ?? ""
+        saldoIniziale = c.saldoIniziale == 0 ? "" : c.saldoIniziale.formatted(.number.precision(.fractionLength(2)))
+        tasso = c.tassoAnnuo.map { $0.formatted(.number.precision(.fractionLength(0...2))) } ?? ""
         colore = c.coloreHex
         archiviato = c.archiviato
     }
@@ -302,10 +302,10 @@ fileprivate struct AggiungiContantiView: View {
         let valore = abs(leggiNumero(importo) ?? 0)
         let contanti = DatiIniziali.contoContanti(in: context)
         if prelievo, let origine = conti.first(where: { $0.persistentModelID == contoID }) {
-            context.insert(Movimento(data: data, importo: -valore, tipo: .giroconto, titolo: "Prelievo contanti", origine: .manuale, stato: .confermato, conto: origine))
-            context.insert(Movimento(data: data, importo: valore, tipo: .giroconto, titolo: "Prelievo", origine: .manuale, stato: .confermato, conto: contanti))
+            context.insert(Movimento(data: data, importo: -valore, tipo: .giroconto, titolo: String(localized: "Prelievo contanti"), origine: .manuale, stato: .confermato, conto: origine))
+            context.insert(Movimento(data: data, importo: valore, tipo: .giroconto, titolo: String(localized: "Prelievo"), origine: .manuale, stato: .confermato, conto: contanti))
         } else {
-            let m = Movimento(data: data, importo: valore, tipo: .entrata, titolo: nota.isEmpty ? "Contanti ricevuti" : nota, origine: .manuale,
+            let m = Movimento(data: data, importo: valore, tipo: .entrata, titolo: nota.isEmpty ? String(localized: "Contanti ricevuti") : nota, origine: .manuale,
                               stato: .confermato, conto: contanti, categoria: Classificatore.categoria(nome: "Altre entrate", in: context))
             context.insert(m)
         }
@@ -351,7 +351,7 @@ fileprivate struct ContaContantiView: View {
 
     private func salva() {
         if let d = differenza, d != 0 {
-            context.insert(Movimento(data: Date(), importo: d, tipo: .spesa, titolo: "Contanti non tracciati", origine: .manuale,
+            context.insert(Movimento(data: Date(), importo: d, tipo: .spesa, titolo: String(localized: "Contanti non tracciati"), origine: .manuale,
                                      stato: .confermato, conto: contanti, categoria: Classificatore.categoria(nome: "Altro", in: context)))
             try? context.save()
         }

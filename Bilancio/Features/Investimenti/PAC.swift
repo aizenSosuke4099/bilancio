@@ -32,7 +32,7 @@ enum PAC {
                 let valide = CalcoliInvestimenti.indiciValidi(allocazioni.map(\.validaDal), al: data).map { allocazioni[$0] }
 
                 let movimento = Movimento(data: data, importo: -piano.importoMensile, tipo: .investimento,
-                                          titolo: "PAC " + piano.nome, origine: .pac, stato: .daConfermare, conto: piano.conto)
+                                          titolo: String(localized: "PAC \(piano.nome)"), origine: .pac, stato: .daConfermare, conto: piano.conto)
                 context.insert(movimento)
 
                 for a in valide {
@@ -57,7 +57,9 @@ enum PAC {
                                                              prezzoUnitario: unitario, cambioEUR: cambio)
                     let op = Operazione(data: data, tipo: prezzo == nil ? .versamento : .acquisto,
                                         quote: r.quote, prezzo: prezzo ?? 0, importo: r.importo, cambioEUR: cambio)
-                    op.nota = "PAC " + piano.nome + (prezzo == nil && !s.valoreManuale ? " · prezzo non trovato: riallinea le quote" : "")
+                    op.nota = prezzo == nil && !s.valoreManuale
+                        ? String(localized: "PAC \(piano.nome) · prezzo non trovato: riallinea le quote")
+                        : String(localized: "PAC \(piano.nome)")
                     context.insert(op)
                     op.strumento = s
                     op.movimento = movimento

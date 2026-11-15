@@ -18,8 +18,8 @@ enum Contabilita {
     struct VoceCategoria: Identifiable {
         let categoria: Categoria?
         var importo: Double
-        var id: String { categoria?.nome ?? "Senza categoria" }
-        var nome: String { categoria?.nome ?? "Senza categoria" }
+        var id: String { categoria?.nome ?? String(localized: "Senza categoria") }
+        var nome: String { categoria?.nome ?? String(localized: "Senza categoria") }
         var coloreHex: String { categoria?.coloreHex ?? "#9CA3AF" }
     }
 
@@ -59,7 +59,7 @@ enum Contabilita {
     static func spesePerCategoria(_ movimenti: [Movimento]) -> [VoceCategoria] {
         var accumulo: [String: VoceCategoria] = [:]
         func aggiungi(_ c: Categoria?, _ importo: Double) {
-            let chiave = c?.nome ?? "Senza categoria"
+            let chiave = c?.nome ?? String(localized: "Senza categoria")
             accumulo[chiave, default: VoceCategoria(categoria: c, importo: 0)].importo += importo
         }
         for m in movimenti where m.tipo == .spesa {

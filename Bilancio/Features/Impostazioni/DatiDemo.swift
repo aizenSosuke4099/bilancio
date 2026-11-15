@@ -14,15 +14,22 @@ enum DatiDemo {
 
         var conti = Dictionary(((try? context.fetch(FetchDescriptor<Conto>())) ?? []).map { ($0.nome, $0) }, uniquingKeysWith: { a, _ in a })
         let categorie = Dictionary(((try? context.fetch(FetchDescriptor<Categoria>())) ?? []).map { ($0.nome, $0) }, uniquingKeysWith: { a, _ in a })
+        // le tabelle sotto usano i nomi italiani; le categorie sono salvate nella lingua del telefono
+        func categoria(_ nome: String) -> Categoria? { categorie[nome] ?? categorie[DatiIniziali.localizzato(nome)] }
         let contanti = DatiIniziali.contoContanti(in: context)
         let tipiDemo: [String: TipoConto] = ["Conto corrente": .corrente, "Conto online": .corrente, "Conto digitale": .corrente,
                                              "Conto deposito": .remunerato, "Carta di credito": .carta]
+        // nome italiano del conto demo → nome salvato (lingua del telefono): è la chiave di `conti` e `saldi`
+        let nomiConti = ["Conto corrente": String(localized: "Conto corrente"), "Conto online": String(localized: "Conto online"),
+                         "Conto digitale": String(localized: "Conto digitale"), "Conto deposito": String(localized: "Conto deposito"),
+                         "Carta di credito": String(localized: "Carta di credito"), "Contanti": contanti.nome]
+        func nomeLocale(_ nome: String) -> String { nomiConti[nome] ?? nome }   // un nome già salvato resta com'è
         func conto(_ nome: String) -> Conto {
-            if let c = conti[nome] { return c }
+            if let c = conti[nomeLocale(nome)] { return c }
             guard let tipo = tipiDemo[nome] else { return contanti }
-            let c = Conto(nome: nome, tipo: tipo, ordine: conti.count)
+            let c = Conto(nome: nomeLocale(nome), tipo: tipo, ordine: conti.count)
             context.insert(c)
-            conti[nome] = c
+            conti[nomeLocale(nome)] = c
             return c
         }
 
@@ -30,11 +37,11 @@ enum DatiDemo {
         let saldiIniziali: [String: Double] = ["Conto corrente": 4_200, "Conto online": 800, "Conto digitale": 250, "Conto deposito": 6_000, "Contanti": 120]
         for (nome, saldo) in saldiIniziali { conto(nome).saldoIniziale = saldo }
         conto("Conto deposito").tassoAnnuo = 2.0
-        var saldi = saldiIniziali
+        var saldi = Dictionary(saldiIniziali.map { (nomeLocale($0.key), $0.value) }, uniquingKeysWith: +)
 
         // Budget
         for (nome, budget) in [("Spesa alimentare", 350.0), ("Ristoranti e bar", 150), ("Trasporti", 100), ("Svago e cultura", 60), ("Abbigliamento", 80)] {
-            categorie[nome]?.budgetMensile = budget
+            categoria(nome)?.budgetMensile = budget
         }
         if UserDefaults.standard.double(forKey: "istat.inflazione") == 0 { UserDefaults.standard.set(1.6, forKey: "istat.inflazione") }
         if UserDefaults.standard.double(forKey: "cambio.CHF") == 0 { Portafoglio.salvaCambio("CHF", 1.07) }
@@ -50,7 +57,7 @@ enum DatiDemo {
             let m = Movimento(data: data, importo: importo.centesimi, tipo: tipo, titolo: titolo, origine: origine, stato: .confermato)
             context.insert(m)
             m.conto = conto(nomeConto)
-            m.categoria = nomeCategoria.flatMap { categorie[$0] }
+            m.categoria = nomeCategoria.flatMap { categoria($0) }
             m.ricorrenza = ricorrenza
             m.descrizioneOriginale = descrizione ?? titolo.uppercased()
             if origine == .banca {
@@ -59,8 +66,8 @@ enum DatiDemo {
             }
             // da confermare: le proposte ricorrenti del mese e gli ultimi giorni
             if (origine == .ricorrente && data >= meseCorrente) || data >= oggi.aggiungendo(giorni: -3) { m.stato = .daConfermare }
-            saldi[nomeConto, default: 0] += m.importo
-            if nomeConto == "Carta di credito", tipo == .spesa { spesaCarta[k] -= m.importo }
+            saldi[nomeLocale(nomeConto), default: 0] += m.importo
+            if nomeLocale(nomeConto) == nomeLocale("Carta di credito"), tipo == .spesa { spesaCarta[k] -= m.importo }
             return m
         }
         func giroconto(_ data: Date, _ importo: Double, da: String, a: String, _ titolo: String) {
@@ -74,14 +81,14 @@ enum DatiDemo {
             let r = Ricorrenza(nome: nome, importo: importo, tipo: tipo, giorno: giorno)
             context.insert(r)
             r.conto = conto(nomeConto)
-            r.categoria = categorie[nomeCategoria]
+            r.categoria = categoria(nomeCategoria)
             r.ultimaGenerazione = meseCorrente
             return r
         }
         let ricorrenze = [
-            ricorrenza("Stipendio", 2_650, .entrata, giorno: 27, "Conto corrente", "Stipendio"),
-            ricorrenza("Affitto", -750, .spesa, giorno: 1, "Conto corrente", "Casa e bollette"),
-            ricorrenza("Abbonamento ATM", -39, .spesa, giorno: 3, "Conto corrente", "Trasporti"),
+            ricorrenza(String(localized: "Stipendio"), 2_650, .entrata, giorno: 27, "Conto corrente", "Stipendio"),
+            ricorrenza(String(localized: "Affitto"), -750, .spesa, giorno: 1, "Conto corrente", "Casa e bollette"),
+            ricorrenza(String(localized: "Abbonamento ATM", comment: "abbonamento mensile ai mezzi pubblici di Milano (ATM)"), -39, .spesa, giorno: 3, "Conto corrente", "Trasporti"),
             ricorrenza("Spotify", -11.99, .spesa, giorno: 8, "Conto digitale", "Abbonamenti"),
             ricorrenza("Fastweb", -27.95, .spesa, giorno: 10, "Conto corrente", "Casa e bollette"),
             ricorrenza("Netflix", -13.99, .spesa, giorno: 12, "Carta di credito", "Abbonamenti"),
@@ -120,7 +127,7 @@ enum DatiDemo {
         let prezziETF = etf.map { e in (0..<12).map { k in k == 11 ? e.1 : (e.1 * (0.88 + 0.12 * Double(k) / 11) * caso.tra(0.975, 1.025)).centesimi } }
         var quoteETF = Array(repeating: 0.0, count: etf.count)
 
-        let piano = PianoPAC(nome: "PAC ETF", piattaforma: "Broker ETF", importoMensile: 400, giorno: 2)
+        let piano = PianoPAC(nome: String(localized: "PAC ETF", comment: "nome di un piano di accumulo (PAC) in ETF"), piattaforma: "Broker ETF", importoMensile: 400, giorno: 2)
         context.insert(piano)
         piano.conto = conto("Conto corrente")
         piano.ultimaGenerazione = meseCorrente
@@ -132,14 +139,15 @@ enum DatiDemo {
         }
 
         // Fondi a valore manuale: (strumento, valore attuale in valuta, cambio verso EUR, versamento mensile o trimestrale)
-        let fondoPensione = strumento("Fondo pensione – Linea crescita", "", .fondoPensione, "Fondo pensione")
+        let fondoPensione = strumento(String(localized: "Fondo pensione – Linea crescita"), "", .fondoPensione, String(localized: "Fondo pensione"))
         fondoPensione.fondoPensioneItaliano = true
-        let roboAdvisor = strumento("Robo-advisor – Portafoglio 5", "", .gestione, "Robo-advisor")
-        let previdenzaCH = strumento("Previdenza 3a – Global 100", "", .fondoPensione, "Previdenza CH", valuta: "CHF")
+        let roboAdvisor = strumento(String(localized: "Robo-advisor – Portafoglio 5"), "", .gestione, "Robo-advisor")
+        let previdenzaCH = strumento(String(localized: "Previdenza 3a – Global 100", comment: "fondo del terzo pilastro svizzero (pilastro 3a)"), "", .fondoPensione,
+                                     String(localized: "Previdenza CH", comment: "previdenza svizzera"), valuta: "CHF")
         let prima = primoMese.aggiungendo(giorni: -1)
-        operazione(fondoPensione, primoMese.aggiungendo(mesi: -30), .versamento, importo: 7_200, nota: "Versamenti degli anni precedenti")
-        operazione(roboAdvisor, primoMese.aggiungendo(mesi: -6), .versamento, importo: 3_000, nota: "Versamento iniziale")
-        operazione(previdenzaCH, primoMese.aggiungendo(mesi: -8), .versamento, importo: 2_000, cambio: 1.05, nota: "Versamento iniziale")
+        operazione(fondoPensione, primoMese.aggiungendo(mesi: -30), .versamento, importo: 7_200, nota: String(localized: "Versamenti degli anni precedenti"))
+        operazione(roboAdvisor, primoMese.aggiungendo(mesi: -6), .versamento, importo: 3_000, nota: String(localized: "Versamento iniziale"))
+        operazione(previdenzaCH, primoMese.aggiungendo(mesi: -8), .versamento, importo: 2_000, cambio: 1.05, nota: String(localized: "Versamento iniziale"))
         var valoriFondi: [(Strumento, Double, Double)] = [(fondoPensione, 8_150, 1), (roboAdvisor, 3_180, 1), (previdenzaCH, 2_080, 1.07)]
         for (s, valore, _) in valoriFondi { let v = Valutazione(data: prima, valore: valore); context.insert(v); v.strumento = s }
 
@@ -149,7 +157,7 @@ enum DatiDemo {
         for p in prodottiDemo {
             let prodotto = Prodotto(nome: p.nome, unita: p.unita, formato: p.formatoDopo ?? p.formato)
             context.insert(prodotto)
-            prodotto.categoria = categorie[p.categoria]
+            prodotto.categoria = categoria(p.categoria)
             prodotti[p.nome] = prodotto
         }
         let negozi: [(nome: String, varianteOCR: String, indirizzo: String, fattore: Double, carrello: Double)] = [
@@ -180,7 +188,7 @@ enum DatiDemo {
                 context.insert(r)
                 r.scontrino = s
                 r.prodotto = prodotti[p.nome]
-                r.categoria = categorie[p.categoria]
+                r.categoria = categoria(p.categoria)
                 totale += r.totale
                 ocr.append("\(testo)  \(r.totale.formatted(.number.precision(.fractionLength(2)).locale(localeIT)))")
             }
@@ -210,10 +218,10 @@ enum DatiDemo {
             for r in ricorrenze {
                 guard let d = il(r.giorno, ora: 9) else { continue }
                 var importo = r.importo
-                if r.nome == "Stipendio" { importo += caso.scegli([0, 0, 0, 85, 140.0]) }   // straordinari
+                if r.nome == String(localized: "Stipendio") { importo += caso.scegli([0, 0, 0, 85, 140.0]) }   // straordinari
                 mov(d, importo, r.tipo, r.nome, r.conto?.nome ?? "Conto corrente", r.categoria?.nome, origine: .ricorrente, ricorrenza: r)
             }
-            if numeroMese == 12, let d = il(18, ora: 9) { mov(d, 2_420, .entrata, "Tredicesima", "Conto corrente", "Stipendio", descrizione: "ACCREDITO EMOLUMENTI TREDICESIMA") }
+            if numeroMese == 12, let d = il(18, ora: 9) { mov(d, 2_420, .entrata, String(localized: "Tredicesima", comment: "tredicesima mensilità dello stipendio, pagata a dicembre"), "Conto corrente", "Stipendio", descrizione: "ACCREDITO EMOLUMENTI TREDICESIMA") }
 
             // bollette
             if numeroMese % 2 == 0, let d = il(18) { mov(d, -caso.tra(55, 85), .spesa, "Enel Energia", "Conto corrente", "Casa e bollette", descrizione: "SDD ENEL ENERGIA SPA") }
@@ -221,21 +229,21 @@ enum DatiDemo {
                 let inverno = [11, 12, 1, 2, 3].contains(numeroMese)
                 mov(d, -(inverno ? caso.tra(70, 110) : caso.tra(18, 30)), .spesa, "Eni Plenitude", "Conto corrente", "Casa e bollette", descrizione: "SDD ENI PLENITUDE GAS")
             }
-            if let d = il(28) { mov(d, -2.5, .spesa, "Canone conto", "Conto corrente", "Tasse e commissioni", descrizione: "CANONE MENSILE CONTO") }
+            if let d = il(28) { mov(d, -2.5, .spesa, String(localized: "Canone conto"), "Conto corrente", "Tasse e commissioni", descrizione: "CANONE MENSILE CONTO") }
 
             // giroconti, prelievi, interessi
-            if let d = il(1, ora: 7) { giroconto(d, 300, da: "Conto corrente", a: "Conto digitale", "Ricarica conto digitale") }
-            if let d = il(28, ora: 18) { giroconto(d, 200, da: "Conto corrente", a: "Conto deposito", "Giroconto al conto deposito") }
-            if let d = il(6) { giroconto(d, 100, da: "Conto corrente", a: "Contanti", "Prelievo contanti") }
-            if let d = il(21) { giroconto(d, 80, da: "Conto corrente", a: "Contanti", "Prelievo contanti") }
-            if k > 0, let d = il(15, ora: 6) { giroconto(d, spesaCarta[k - 1].centesimi, da: "Conto corrente", a: "Carta di credito", "Addebito carta di credito") }
+            if let d = il(1, ora: 7) { giroconto(d, 300, da: "Conto corrente", a: "Conto digitale", String(localized: "Ricarica conto digitale")) }
+            if let d = il(28, ora: 18) { giroconto(d, 200, da: "Conto corrente", a: "Conto deposito", String(localized: "Giroconto al conto deposito")) }
+            if let d = il(6) { giroconto(d, 100, da: "Conto corrente", a: "Contanti", String(localized: "Prelievo contanti")) }
+            if let d = il(21) { giroconto(d, 80, da: "Conto corrente", a: "Contanti", String(localized: "Prelievo contanti")) }
+            if k > 0, let d = il(15, ora: 6) { giroconto(d, spesaCarta[k - 1].centesimi, da: "Conto corrente", a: "Carta di credito", String(localized: "Addebito carta di credito")) }
             if k > 0, let d = il(1, ora: 6) {
-                mov(d, (saldi["Conto deposito", default: 0] * 0.02 / 12), .entrata, "Interessi conto deposito", "Conto deposito", "Interessi e dividendi")
+                mov(d, (saldi[nomeLocale("Conto deposito"), default: 0] * 0.02 / 12), .entrata, String(localized: "Interessi conto deposito"), "Conto deposito", "Interessi e dividendi")
             }
 
             // PAC ETF
             if let d = il(2, ora: 10) {
-                let m = mov(d, -400, .investimento, "PAC ETF", "Conto corrente", origine: .pac, descrizione: "BROKER ETF PAC")
+                let m = mov(d, -400, .investimento, piano.nome, "Conto corrente", origine: .pac, descrizione: "BROKER ETF PAC")
                 for (i, (s, _, percentuale)) in etf.enumerated() {
                     let importo = 400 * percentuale / 100
                     let prezzo = prezziETF[i][k]
@@ -250,11 +258,11 @@ enum DatiDemo {
             }
             if let d = il(6, ora: 10) {
                 let cambio = caso.tra(1.055, 1.075)
-                operazione(previdenzaCH, d, .versamento, importo: 100, cambio: cambio, movimento: mov(d, -100 * cambio, .investimento, "Previdenza CH", "Conto digitale", descrizione: "TRANSFER TO PREVIDENZA 3A AG"))
+                operazione(previdenzaCH, d, .versamento, importo: 100, cambio: cambio, movimento: mov(d, -100 * cambio, .investimento, previdenzaCH.piattaforma, "Conto digitale", descrizione: "TRANSFER TO PREVIDENZA 3A AG"))
                 valoriFondi[2].1 += 100
             }
             if numeroMese % 3 == 0, let d = il(16, ora: 10) {
-                operazione(fondoPensione, d, .versamento, importo: 640, nota: "TFR e contributi")
+                operazione(fondoPensione, d, .versamento, importo: 640, nota: String(localized: "TFR e contributi", comment: "TFR = trattamento di fine rapporto (liquidazione) versato al fondo pensione"))
                 valoriFondi[0].1 += 640
             }
 
@@ -273,9 +281,9 @@ enum DatiDemo {
                 if let d = aCaso() { mov(d, -caso.tra(l.1.lowerBound, l.1.upperBound), .spesa, l.0, l.2, "Ristoranti e bar", origine: l.2 == "Contanti" ? .manuale : .banca) }
             }
             // contanti
-            for _ in 0..<caso.intero(2, 4) { if let d = aCaso() { mov(d, -caso.tra(1.2, 4.5), .spesa, "Caffè al bar", "Contanti", "Ristoranti e bar", origine: .manuale) } }
-            if let d = aCaso() { mov(d, -caso.tra(8, 15), .spesa, "Mercato rionale", "Contanti", "Spesa alimentare", origine: .manuale) }
-            if k % 2 == 0, let d = aCaso() { mov(d, -18, .spesa, "Barbiere", "Contanti", "Cura personale", origine: .manuale) }
+            for _ in 0..<caso.intero(2, 4) { if let d = aCaso() { mov(d, -caso.tra(1.2, 4.5), .spesa, String(localized: "Caffè al bar"), "Contanti", "Ristoranti e bar", origine: .manuale) } }
+            if let d = aCaso() { mov(d, -caso.tra(8, 15), .spesa, String(localized: "Mercato rionale"), "Contanti", "Spesa alimentare", origine: .manuale) }
+            if k % 2 == 0, let d = aCaso() { mov(d, -18, .spesa, String(localized: "Barbiere"), "Contanti", "Cura personale", origine: .manuale) }
 
             // trasporti, svago, shopping, salute
             for _ in 0..<caso.intero(1, 2) { if let d = aCaso() { mov(d, -caso.tra(19, 45), .spesa, "Trenitalia", "Carta di credito", "Trasporti") } }
@@ -288,16 +296,16 @@ enum DatiDemo {
                 mov(d, -caso.tra(25, saldiStagione ? 120 : 70), .spesa, caso.scegli(["Zara", "Decathlon", "Uniqlo"]), "Carta di credito", "Abbigliamento")
             }
             if caso.probabilita(0.4), let d = aCaso() { mov(d, -caso.tra(6, 25), .spesa, "Farmacia Centrale", "Conto corrente", "Salute") }
-            if numeroMese == 3, let d = il(14) { mov(d, -120, .spesa, "Studio dentistico", "Conto corrente", "Salute") }
+            if numeroMese == 3, let d = il(14) { mov(d, -120, .spesa, String(localized: "Studio dentistico"), "Conto corrente", "Salute") }
             if caso.probabilita(0.3), let d = aCaso() { mov(d, -caso.tra(8, 20), .spesa, "Tigotà", "Conto digitale", "Cura personale") }
             if caso.probabilita(0.5), let d = aCaso() { mov(d, -caso.tra(15, 60), .spesa, "Amazon", "Conto online", "Altro", descrizione: "AMZN MKTP IT") }
-            if numeroMese == 4, let d = il(9) { mov(d, 29.99, .entrata, "Rimborso Amazon", "Conto online", "Rimborsi", descrizione: "AMAZON REFUND") }
+            if numeroMese == 4, let d = il(9) { mov(d, 29.99, .entrata, String(localized: "Rimborso Amazon"), "Conto online", "Rimborsi", descrizione: "AMAZON REFUND") }
 
             // una tantum
             if numeroMese == 5, let d = il(20) { mov(d, -129, .spesa, "Ryanair", "Carta di credito", "Viaggi") }
             if numeroMese == 7, let d = il(3) { mov(d, -380, .spesa, "Booking.com", "Carta di credito", "Viaggi") }
             if numeroMese == 7, let d = il(19) { mov(d, -279, .spesa, "Apple Store", "Carta di credito", "Tecnologia") }
-            if numeroMese == 12 { for g in [10, 15, 20] { if let d = il(g) { mov(d, -caso.tra(30, 80), .spesa, "Regali di Natale", "Carta di credito", "Regali") } } }
+            if numeroMese == 12 { for g in [10, 15, 20] { if let d = il(g) { mov(d, -caso.tra(30, 80), .spesa, String(localized: "Regali di Natale"), "Carta di credito", "Regali") } } }
 
             // valore dei fondi e fotografia del patrimonio a fine mese
             for i in valoriFondi.indices { valoriFondi[i].1 *= 1 + caso.tra(-0.004, 0.009) }
@@ -322,25 +330,25 @@ enum DatiDemo {
 
     /// Prodotti ricorrenti della spesa (prezzi di partenza Coop, inflazione annua tipica).
     private static let prodottiDemo: [ProdottoDemo] = [
-        ProdottoDemo(nome: "Latte intero 1 l", testo: "LATTE INTERO 1L", unita: "l", formato: 1, prezzo: 1.25, inflazioneAnnua: 0.06, categoria: "Spesa alimentare", probabilita: 0.75),
-        ProdottoDemo(nome: "Pane comune 500 g", testo: "PANE COMUNE 500G", unita: "kg", formato: 0.5, prezzo: 1.70, inflazioneAnnua: 0.04, categoria: "Spesa alimentare", probabilita: 0.6),
-        ProdottoDemo(nome: "Spaghetti 500 g", testo: "SPAGHETTI N.5 500G", unita: "kg", formato: 0.5, prezzo: 0.95, inflazioneAnnua: 0.08, categoria: "Spesa alimentare", probabilita: 0.6),
-        ProdottoDemo(nome: "Caffè macinato 250 g", testo: "CAFFE MACINATO 250G", unita: "kg", formato: 0.25, prezzo: 3.39, inflazioneAnnua: 0.22, categoria: "Spesa alimentare", probabilita: 0.35),
-        ProdottoDemo(nome: "Uova fresche 6 pz", testo: "UOVA FRESCHE X6", unita: "pz", formato: 6, prezzo: 2.09, inflazioneAnnua: 0.07, categoria: "Spesa alimentare", probabilita: 0.45),
-        ProdottoDemo(nome: "Olio extravergine 1 l", testo: "OLIO EXTRAV. OLIVA 1L", unita: "l", formato: 1, prezzo: 9.49, inflazioneAnnua: -0.12, categoria: "Spesa alimentare", probabilita: 0.15),
-        ProdottoDemo(nome: "Biscotti frollini", testo: "BISCOTTI FROLLINI 350G", unita: "kg", formato: 0.35, prezzo: 2.29, inflazioneAnnua: 0.02, categoria: "Spesa alimentare", probabilita: 0.3,
+        ProdottoDemo(nome: String(localized: "Latte intero 1 l"), testo: "LATTE INTERO 1L", unita: "l", formato: 1, prezzo: 1.25, inflazioneAnnua: 0.06, categoria: "Spesa alimentare", probabilita: 0.75),
+        ProdottoDemo(nome: String(localized: "Pane comune 500 g"), testo: "PANE COMUNE 500G", unita: "kg", formato: 0.5, prezzo: 1.70, inflazioneAnnua: 0.04, categoria: "Spesa alimentare", probabilita: 0.6),
+        ProdottoDemo(nome: String(localized: "Spaghetti 500 g"), testo: "SPAGHETTI N.5 500G", unita: "kg", formato: 0.5, prezzo: 0.95, inflazioneAnnua: 0.08, categoria: "Spesa alimentare", probabilita: 0.6),
+        ProdottoDemo(nome: String(localized: "Caffè macinato 250 g"), testo: "CAFFE MACINATO 250G", unita: "kg", formato: 0.25, prezzo: 3.39, inflazioneAnnua: 0.22, categoria: "Spesa alimentare", probabilita: 0.35),
+        ProdottoDemo(nome: String(localized: "Uova fresche 6 pz"), testo: "UOVA FRESCHE X6", unita: "pz", formato: 6, prezzo: 2.09, inflazioneAnnua: 0.07, categoria: "Spesa alimentare", probabilita: 0.45),
+        ProdottoDemo(nome: String(localized: "Olio extravergine 1 l"), testo: "OLIO EXTRAV. OLIVA 1L", unita: "l", formato: 1, prezzo: 9.49, inflazioneAnnua: -0.12, categoria: "Spesa alimentare", probabilita: 0.15),
+        ProdottoDemo(nome: String(localized: "Biscotti frollini"), testo: "BISCOTTI FROLLINI 350G", unita: "kg", formato: 0.35, prezzo: 2.29, inflazioneAnnua: 0.02, categoria: "Spesa alimentare", probabilita: 0.3,
                      testoDopo: "BISCOTTI FROLLINI 320G", formatoDopo: 0.32),
-        ProdottoDemo(nome: "Mozzarella 125 g", testo: "MOZZARELLA 125G", unita: "kg", formato: 0.125, prezzo: 0.89, inflazioneAnnua: 0.05, categoria: "Spesa alimentare", probabilita: 0.5),
-        ProdottoDemo(nome: "Pomodori pelati 400 g", testo: "POMODORI PELATI 400G", unita: "kg", formato: 0.4, prezzo: 0.79, inflazioneAnnua: 0.10, categoria: "Spesa alimentare", probabilita: 0.4),
-        ProdottoDemo(nome: "Banane", testo: "BANANE", unita: "kg", formato: 1, prezzo: 1.79, inflazioneAnnua: 0.03, categoria: "Spesa alimentare", probabilita: 0.5, sfuso: true),
-        ProdottoDemo(nome: "Mele", testo: "MELE GOLDEN", unita: "kg", formato: 1, prezzo: 2.29, inflazioneAnnua: 0.02, categoria: "Spesa alimentare", probabilita: 0.35, sfuso: true),
-        ProdottoDemo(nome: "Petto di pollo", testo: "PETTO DI POLLO", unita: "kg", formato: 1, prezzo: 11.90, inflazioneAnnua: 0.06, categoria: "Spesa alimentare", probabilita: 0.4, sfuso: true),
-        ProdottoDemo(nome: "Yogurt bianco 500 g", testo: "YOGURT BIANCO 500G", unita: "kg", formato: 0.5, prezzo: 1.49, inflazioneAnnua: 0.04, categoria: "Spesa alimentare", probabilita: 0.35),
-        ProdottoDemo(nome: "Acqua naturale 6×1,5 l", testo: "ACQUA NATURALE 6X1,5L", unita: "l", formato: 9, prezzo: 2.19, inflazioneAnnua: 0.05, categoria: "Spesa alimentare", probabilita: 0.4),
-        ProdottoDemo(nome: "Parmigiano Reggiano 300 g", testo: "PARMIGIANO REGG. 300G", unita: "kg", formato: 0.3, prezzo: 5.49, inflazioneAnnua: 0.09, categoria: "Spesa alimentare", probabilita: 0.2),
-        ProdottoDemo(nome: "Burro 250 g", testo: "BURRO 250G", unita: "kg", formato: 0.25, prezzo: 2.49, inflazioneAnnua: 0.11, categoria: "Spesa alimentare", probabilita: 0.25),
-        ProdottoDemo(nome: "Detersivo piatti 1 l", testo: "DETERSIVO PIATTI 1L", unita: "l", formato: 1, prezzo: 1.89, inflazioneAnnua: 0.03, categoria: "Casa e pulizia", probabilita: 0.15),
-        ProdottoDemo(nome: "Dentifricio 75 ml", testo: "DENTIFRICIO 75ML", unita: "l", formato: 0.075, prezzo: 2.19, inflazioneAnnua: 0.04, categoria: "Cura personale", probabilita: 0.12),
+        ProdottoDemo(nome: String(localized: "Mozzarella 125 g"), testo: "MOZZARELLA 125G", unita: "kg", formato: 0.125, prezzo: 0.89, inflazioneAnnua: 0.05, categoria: "Spesa alimentare", probabilita: 0.5),
+        ProdottoDemo(nome: String(localized: "Pomodori pelati 400 g"), testo: "POMODORI PELATI 400G", unita: "kg", formato: 0.4, prezzo: 0.79, inflazioneAnnua: 0.10, categoria: "Spesa alimentare", probabilita: 0.4),
+        ProdottoDemo(nome: String(localized: "Banane"), testo: "BANANE", unita: "kg", formato: 1, prezzo: 1.79, inflazioneAnnua: 0.03, categoria: "Spesa alimentare", probabilita: 0.5, sfuso: true),
+        ProdottoDemo(nome: String(localized: "Mele"), testo: "MELE GOLDEN", unita: "kg", formato: 1, prezzo: 2.29, inflazioneAnnua: 0.02, categoria: "Spesa alimentare", probabilita: 0.35, sfuso: true),
+        ProdottoDemo(nome: String(localized: "Petto di pollo"), testo: "PETTO DI POLLO", unita: "kg", formato: 1, prezzo: 11.90, inflazioneAnnua: 0.06, categoria: "Spesa alimentare", probabilita: 0.4, sfuso: true),
+        ProdottoDemo(nome: String(localized: "Yogurt bianco 500 g"), testo: "YOGURT BIANCO 500G", unita: "kg", formato: 0.5, prezzo: 1.49, inflazioneAnnua: 0.04, categoria: "Spesa alimentare", probabilita: 0.35),
+        ProdottoDemo(nome: String(localized: "Acqua naturale 6×1,5 l"), testo: "ACQUA NATURALE 6X1,5L", unita: "l", formato: 9, prezzo: 2.19, inflazioneAnnua: 0.05, categoria: "Spesa alimentare", probabilita: 0.4),
+        ProdottoDemo(nome: String(localized: "Parmigiano Reggiano 300 g"), testo: "PARMIGIANO REGG. 300G", unita: "kg", formato: 0.3, prezzo: 5.49, inflazioneAnnua: 0.09, categoria: "Spesa alimentare", probabilita: 0.2),
+        ProdottoDemo(nome: String(localized: "Burro 250 g"), testo: "BURRO 250G", unita: "kg", formato: 0.25, prezzo: 2.49, inflazioneAnnua: 0.11, categoria: "Spesa alimentare", probabilita: 0.25),
+        ProdottoDemo(nome: String(localized: "Detersivo piatti 1 l"), testo: "DETERSIVO PIATTI 1L", unita: "l", formato: 1, prezzo: 1.89, inflazioneAnnua: 0.03, categoria: "Casa e pulizia", probabilita: 0.15),
+        ProdottoDemo(nome: String(localized: "Dentifricio 75 ml"), testo: "DENTIFRICIO 75ML", unita: "l", formato: 0.075, prezzo: 2.19, inflazioneAnnua: 0.04, categoria: "Cura personale", probabilita: 0.12),
     ]
 }
 

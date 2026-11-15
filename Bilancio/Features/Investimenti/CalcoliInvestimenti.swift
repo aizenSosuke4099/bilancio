@@ -201,7 +201,7 @@ enum CalcoliInvestimenti {
     /// Numero da mettere in un campo di testo modificabile ("1234,5678").
     static func testoNumero(_ x: Double?) -> String {
         guard let x else { return "" }
-        return x.formatted(.number.precision(.fractionLength(0...6)).grouping(.never).locale(localeIT))
+        return x.formatted(.number.precision(.fractionLength(0...6)).grouping(.never))
     }
 
     #if DEBUG

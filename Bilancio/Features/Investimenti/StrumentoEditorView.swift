@@ -125,7 +125,7 @@ struct StrumentoEditorView: View {
                     Section {
                         Toggle("Fondo pensione italiano (deducibile)", isOn: $fondoPensioneItaliano)
                     } footer: {
-                        Text("I versamenti sono deducibili fino a 5.164,57 € l'anno: il dettaglio mostra quanto hai già versato.")
+                        Text("I versamenti sono deducibili fino a \(CalcoliConsigli.massimoDeducibileFondoPensione.euro) l'anno: il dettaglio mostra quanto hai già versato.")
                     }
                 }
 
@@ -271,7 +271,7 @@ struct StrumentoEditorView: View {
         let cambio = Portafoglio.cambio(valuta)
         if conQuote, let q = leggiNumero(quoteIniziali), q > 0 {
             let op = Operazione(data: dataIniziale, tipo: .acquisto, quote: q, prezzo: versato / q * fattore, importo: versato, cambioEUR: cambio)
-            op.nota = "Situazione iniziale"
+            op.nota = String(localized: "Situazione iniziale")
             context.insert(op)
             op.strumento = s
             if s.ultimoPrezzo == nil, let v = valore, v > 0 {
@@ -281,7 +281,7 @@ struct StrumentoEditorView: View {
         } else {
             if versato > 0 {
                 let op = Operazione(data: dataIniziale, tipo: .versamento, quote: 0, prezzo: 0, importo: versato, cambioEUR: cambio)
-                op.nota = "Situazione iniziale"
+                op.nota = String(localized: "Situazione iniziale")
                 context.insert(op)
                 op.strumento = s
             }
@@ -296,7 +296,7 @@ struct StrumentoEditorView: View {
 
 /// Campo numerico all'italiana con unità a destra (usato in tutta l'area Investimenti).
 struct CampoNumeroInvestimenti: View {
-    let titolo: String
+    let titolo: LocalizedStringKey
     @Binding var testo: String
     var unita: String? = nil
 

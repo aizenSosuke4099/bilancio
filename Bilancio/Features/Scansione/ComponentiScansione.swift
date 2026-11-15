@@ -60,14 +60,14 @@ struct RigaRevisioneScansione: View {
 
     private var titolo: String {
         if !riga.nomeProdotto.isEmpty { return riga.nomeProdotto }
-        return riga.testo.isEmpty ? "Nuova riga" : riga.testo
+        return riga.testo.isEmpty ? String(localized: "Nuova riga") : riga.testo
     }
 
     private var dettaglio: String {
         var parti: [String] = []
         if !riga.testo.isEmpty, riga.testo != riga.nomeProdotto { parti.append(riga.testo) }
         if riga.quantita != 1 { parti.append("\(riga.quantita.quote) \(riga.unita == "pz" ? "×" : riga.unita + " ×") \(riga.prezzoUnitario.euro)") }
-        parti.append(riga.categoria?.nome ?? "Senza categoria")
+        parti.append(riga.categoria?.nome ?? String(localized: "Senza categoria"))
         return parti.joined(separator: " · ")
     }
 }
@@ -76,8 +76,8 @@ struct EditorRigaScansioneView: View {
     @Binding var riga: RigaInRevisione
     let categorie: [Categoria]
 
-    private let numero = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...3)).locale(localeIT)
-    private let importo = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2)).locale(localeIT)
+    private let numero = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...3))
+    private let importo = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2))
 
     var body: some View {
         Form {
@@ -120,7 +120,7 @@ struct EditorRigaScansioneView: View {
                      : "Proposta automatica: se la correggi, la ricorderò per i prossimi scontrini.")
             }
         }
-        .navigationTitle(riga.nomeProdotto.isEmpty ? "Riga" : riga.nomeProdotto)
+        .navigationTitle(riga.nomeProdotto.isEmpty ? String(localized: "Riga") : riga.nomeProdotto)
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: riga.quantita) { riga.totale = (riga.quantita * riga.prezzoUnitario).centesimi }
         .onChange(of: riga.prezzoUnitario) { riga.totale = (riga.quantita * riga.prezzoUnitario).centesimi }

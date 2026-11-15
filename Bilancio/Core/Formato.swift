@@ -1,27 +1,28 @@
 import Foundation
 
+/// Solo per leggere testi italiani (scontrini, estratti conto, parole chiave). Numeri e date si mostrano nella lingua del telefono.
 let localeIT = Locale(identifier: "it_IT")
 
 var calendario: Calendar {
     var c = Calendar(identifier: .gregorian)
-    c.locale = localeIT
+    c.locale = .current
     c.firstWeekday = 2
     return c
 }
 
 extension Double {
     /// "1.234,56 €"
-    var euro: String { formatted(.currency(code: "EUR").locale(localeIT)) }
+    var euro: String { formatted(.currency(code: "EUR")) }
     /// "1.235 €"
-    var euroTondo: String { formatted(.currency(code: "EUR").precision(.fractionLength(0)).locale(localeIT)) }
+    var euroTondo: String { formatted(.currency(code: "EUR").precision(.fractionLength(0))) }
     /// Importo in una valuta qualsiasi ("CHF 1.234,56").
-    func valuta(_ codice: String) -> String { formatted(.currency(code: codice).locale(localeIT)) }
+    func valuta(_ codice: String) -> String { formatted(.currency(code: codice)) }
     /// 0.331 → "33,1%"
-    var percento: String { formatted(.percent.precision(.fractionLength(1)).locale(localeIT)) }
+    var percento: String { formatted(.percent.precision(.fractionLength(1))) }
     /// 0.331 → "+33,1%"
     var percentoConSegno: String { (self >= 0 ? "+" : "") + percento }
-    /// Numero con decimali all'italiana, max 4 cifre (quote).
-    var quote: String { formatted(.number.precision(.fractionLength(0...4)).locale(localeIT)) }
+    /// Numero con max 4 decimali (quote).
+    var quote: String { formatted(.number.precision(.fractionLength(0...4))) }
     /// Arrotondamento al centesimo.
     var centesimi: Double { (self * 100).rounded() / 100 }
 }
@@ -38,15 +39,17 @@ extension Date {
     func aggiungendo(giorni: Int) -> Date { calendario.date(byAdding: .day, value: giorni, to: self)! }
 
     /// "novembre 2026"
-    var meseAnno: String { formatted(.dateTime.month(.wide).year().locale(localeIT)) }
+    var meseAnno: String { formatted(.dateTime.month(.wide).year()) }
     /// "Novembre"
-    var nomeMese: String { formatted(.dateTime.month(.wide).locale(localeIT)).capitalized(with: localeIT) }
+    var nomeMese: String { formatted(.dateTime.month(.wide)).capitalized(with: .current) }
+    /// "novembre" (minuscolo in italiano, "November" in inglese): per il mese dentro una frase.
+    var meseInFrase: String { formatted(.dateTime.month(.wide)) }
     /// "nov"
-    var meseBreve: String { formatted(.dateTime.month(.abbreviated).locale(localeIT)) }
+    var meseBreve: String { formatted(.dateTime.month(.abbreviated)) }
     /// "13 nov"
-    var giornoMese: String { formatted(.dateTime.day().month(.abbreviated).locale(localeIT)) }
+    var giornoMese: String { formatted(.dateTime.day().month(.abbreviated)) }
     /// "13/11/2026"
-    var breve: String { formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().locale(localeIT)) }
+    var breve: String { formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()) }
 }
 
 /// Data di inizio di un anno.

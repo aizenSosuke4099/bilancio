@@ -26,7 +26,7 @@ struct InvestimentiView: View {
                         andamento
                         ripartizione
                         ForEach(gruppi, id: \.piattaforma) { g in
-                            Scheda(titolo: g.piattaforma, etichetta: g.valore.euro) {
+                            Scheda(titolo: "\(g.piattaforma)", etichetta: "\(g.valore.euro)") {
                                 ForEach(g.strumenti) { s in
                                     if s.id != g.strumenti.first?.id { Divider() }
                                     NavigationLink { DettaglioStrumentoView(strumento: s) } label: { RigaStrumentoInvestimenti(strumento: s) }
@@ -100,8 +100,8 @@ struct InvestimentiView: View {
             RiquadroKPI(titolo: "Valore", valore: valore.euroTondo, nota: strumenti.count == 1 ? "1 strumento" : "\(strumenti.count) strumenti", colore: Tinta.investito)
             RiquadroKPI(titolo: "Versato", valore: versato.euroTondo, nota: "capitale netto")
             RiquadroKPI(titolo: "Guadagno", valore: (guadagno >= 0 ? "+" : "") + guadagno.euroTondo,
-                        nota: versato > 0 ? (guadagno / versato).percentoConSegno : nil, colore: colore, coloreNota: colore)
-            RiquadroKPI(titolo: "Prezzi", valore: aggiornato.map { $0.giornoMese + " " + $0.formatted(.dateTime.hour().minute().locale(localeIT)) } ?? "mai",
+                        nota: versato > 0 ? "\((guadagno / versato).percentoConSegno)" : nil, colore: colore, coloreNota: colore)
+            RiquadroKPI(titolo: "Prezzi", valore: aggiornato.map { $0.giornoMese + " " + $0.formatted(.dateTime.hour().minute()) } ?? String(localized: "mai"),
                         nota: "tira giù per aggiornare")
         }
     }
@@ -114,9 +114,9 @@ struct InvestimentiView: View {
                     ForEach(serie) { p in
                         AreaMark(x: .value("Mese", p.mese, unit: .month), y: .value("Valore", p.valore))
                             .foregroundStyle(Tinta.investito.opacity(0.12))
-                        LineMark(x: .value("Mese", p.mese, unit: .month), y: .value("Euro", p.valore), series: .value("Serie", "Valore"))
+                        LineMark(x: .value("Mese", p.mese, unit: .month), y: .value("Euro", p.valore), series: .value("Serie", String(localized: "Valore")))
                             .foregroundStyle(Tinta.investito)
-                        LineMark(x: .value("Mese", p.mese, unit: .month), y: .value("Euro", p.versato), series: .value("Serie", "Versato"))
+                        LineMark(x: .value("Mese", p.mese, unit: .month), y: .value("Euro", p.versato), series: .value("Serie", String(localized: "Versato")))
                             .foregroundStyle(Color.gray)
                             .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                     }
@@ -146,7 +146,7 @@ struct InvestimentiView: View {
 
     private var gruppi: [(piattaforma: String, valore: Double, strumenti: [Strumento])] {
         Dictionary(grouping: strumenti, by: \.piattaforma)
-            .map { (piattaforma: $0.key.isEmpty ? "Altro" : $0.key, valore: $0.value.reduce(0) { $0 + Portafoglio.valoreEUR($1) }, strumenti: $0.value) }
+            .map { (piattaforma: $0.key.isEmpty ? DatiIniziali.localizzato("Altro") : $0.key, valore: $0.value.reduce(0) { $0 + Portafoglio.valoreEUR($1) }, strumenti: $0.value) }
             .sorted { $0.valore > $1.valore }
     }
 
@@ -192,7 +192,7 @@ private struct RigaStrumentoInvestimenti: View {
         var parti: [String] = []
         if !strumento.isin.isEmpty { parti.append(strumento.isin) }
         let q = Portafoglio.quote(strumento)
-        if q > 0 { parti.append(q.quote + (strumento.tipo == .obbligazione ? " nominale" : " quote")) }
+        if q > 0 { parti.append(strumento.tipo == .obbligazione ? String(localized: "\(q.quote) nominale") : String(localized: "\(q.quote) quote")) }
         if parti.isEmpty { parti.append(strumento.tipo.etichetta) }
         return parti.joined(separator: " · ")
     }
@@ -202,7 +202,7 @@ private struct RigaStrumentoInvestimenti: View {
 private let coloriInvestimenti: [Color] = [.blue, .purple, .green, .orange, .pink, .teal, .indigo, .brown, .cyan, .mint]
 
 private struct CiambellaInvestimenti: View {
-    let titolo: String
+    let titolo: LocalizedStringKey
     let voci: [String: Double]
 
     var body: some View {

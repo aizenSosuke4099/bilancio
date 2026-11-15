@@ -34,8 +34,8 @@ struct BackupView: View {
             }
 
             Section("Stato") {
-                LabeledContent("Ultimo backup locale", value: Backup.ultimoBackup.map(descrivi) ?? "mai")
-                LabeledContent("Ultimo salvato fuori dall'iPhone", value: Backup.ultimoEsportato.map(descrivi) ?? "mai")
+                LabeledContent("Ultimo backup locale", value: Backup.ultimoBackup.map(descrivi) ?? String(localized: "mai"))
+                LabeledContent("Ultimo salvato fuori dall'iPhone", value: Backup.ultimoEsportato.map(descrivi) ?? String(localized: "mai"))
             }
 
             Section {
@@ -43,7 +43,7 @@ struct BackupView: View {
                 ForEach(locali, id: \.self) { url in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(url.lastPathComponent)
-                        Text(Backup.dimensione(url).formatted(.byteCount(style: .file).locale(localeIT)))
+                        Text(Backup.dimensione(url).formatted(.byteCount(style: .file)))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     .swipeActions {
@@ -86,7 +86,7 @@ struct BackupView: View {
                     switch risultato {
                     case .success:
                         if esportaBackup { Backup.segnaEsportato() }
-                        messaggio = esportaBackup ? "Backup salvato." : "CSV salvato."
+                        messaggio = esportaBackup ? String(localized: "Backup salvato.") : String(localized: "CSV salvato.")
                     case .failure(let e):
                         messaggio = e.localizedDescription
                     }
@@ -104,7 +104,7 @@ struct BackupView: View {
     }
 
     private func descrivi(_ d: Date) -> String {
-        d.formatted(.relative(presentation: .named).locale(localeIT))
+        d.formatted(.relative(presentation: .named))
     }
 
     private func aggiorna() {
@@ -117,7 +117,7 @@ struct BackupView: View {
             try context.save()
             esporta(try Backup.crea())
         } catch {
-            messaggio = "Backup non riuscito: \(error.localizedDescription)"
+            messaggio = String(localized: "Backup non riuscito: \(error.localizedDescription)")
         }
         aggiorna()
     }
@@ -148,7 +148,7 @@ struct BackupView: View {
         daRipristinare = nil
         do {
             try Backup.preparaRipristino(da: url)
-            messaggio = "Ripristino pronto. Chiudi e riapri l'app per completare."
+            messaggio = String(localized: "Ripristino pronto. Chiudi e riapri l'app per completare.")
         } catch {
             messaggio = error.localizedDescription
         }

@@ -7,11 +7,11 @@ enum CalcoliDashboard {
     // MARK: Formattazione
 
     /// 0.331 → "33%"
-    static func percentoTondo(_ x: Double) -> String { x.formatted(.percent.precision(.fractionLength(0)).locale(localeIT)) }
+    static func percentoTondo(_ x: Double) -> String { x.formatted(.percent.precision(.fractionLength(0))) }
     /// 0.331 → "+33%"
     static func percentoTondoConSegno(_ x: Double) -> String { (x >= 0 ? "+" : "") + percentoTondo(x) }
     /// 2650.4 → "2.650"
-    static func numeroTondo(_ x: Double) -> String { x.formatted(.number.precision(.fractionLength(0)).locale(localeIT)) }
+    static func numeroTondo(_ x: Double) -> String { x.formatted(.number.precision(.fractionLength(0))) }
 
     // MARK: Mesi
 
@@ -43,7 +43,7 @@ enum CalcoliDashboard {
         var somme: [String: Double] = [:]
         for m in movimenti where m.tipo == .investimento {
             let piattaforma = m.operazioni.first?.strumento?.piattaforma ?? ""
-            let nome = !piattaforma.isEmpty ? piattaforma : (m.titolo.isEmpty ? "Altro" : m.titolo)
+            let nome = !piattaforma.isEmpty ? piattaforma : (m.titolo.isEmpty ? DatiIniziali.localizzato("Altro") : m.titolo)
             somme[nome, default: 0] -= m.importo
         }
         return somme.filter { $0.value > 0.005 }.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
@@ -66,7 +66,7 @@ enum CalcoliDashboard {
     /// Ricorrenze attive della categoria Abbonamenti, dalla più cara.
     static func abbonamenti(in context: ModelContext) -> [Ricorrenza] {
         let attive = (try? context.fetch(FetchDescriptor<Ricorrenza>(predicate: #Predicate { $0.attiva == true }))) ?? []
-        return attive.filter { $0.categoria?.nome == "Abbonamenti" }.sorted { $0.importoAnnuo > $1.importoAnnuo }
+        return attive.filter { DatiIniziali.corrisponde($0.categoria?.nome, a: "Abbonamenti") }.sorted { $0.importoAnnuo > $1.importoAnnuo }
     }
 
     // MARK: Patrimonio nel tempo

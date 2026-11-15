@@ -20,8 +20,8 @@ extension Color {
 
 /// Riquadro bianco arrotondato con titolo opzionale (stile delle bozze approvate).
 struct Scheda<Contenuto: View>: View {
-    var titolo: String?
-    var etichetta: String?
+    var titolo: LocalizedStringKey?
+    var etichetta: LocalizedStringKey?
     @ViewBuilder var contenuto: Contenuto
 
     var body: some View {
@@ -43,15 +43,15 @@ struct Scheda<Contenuto: View>: View {
 
 /// Riquadro KPI: etichetta piccola, valore grande, nota sotto.
 struct RiquadroKPI: View {
-    let titolo: String
+    let titolo: LocalizedStringKey
     let valore: String
-    var nota: String? = nil
+    var nota: LocalizedStringKey? = nil
     var colore: Color = .primary
     var coloreNota: Color = .secondary
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(titolo.uppercased()).font(.caption2).foregroundStyle(.secondary).tracking(0.3)
+            Text(titolo).textCase(.uppercase).font(.caption2).foregroundStyle(.secondary).tracking(0.3)
             Text(valore).font(.title3.bold()).foregroundStyle(colore).minimumScaleFactor(0.6).lineLimit(1)
             if let nota { Text(nota).font(.caption2).foregroundStyle(coloreNota).lineLimit(2) }
         }
@@ -63,7 +63,7 @@ struct RiquadroKPI: View {
 
 /// Riquadro giallo dei consigli.
 struct SchedaConsigli: View {
-    let titolo: String
+    let titolo: LocalizedStringKey
     let consigli: [String]
 
     var body: some View {

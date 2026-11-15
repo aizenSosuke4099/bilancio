@@ -55,13 +55,13 @@ private struct SchedaPianoPAC: View {
 
     var body: some View {
         let correnti = setAllocazioniPAC(piano).first?.voci ?? []
-        Scheda(titolo: piano.nome, etichetta: piano.attivo ? "attivo" : "in pausa") {
+        Scheda(titolo: "\(piano.nome)", etichetta: piano.attivo ? "attivo" : "in pausa") {
             HStack(alignment: .firstTextBaseline) {
-                Text(piano.importoMensile.euro + " al mese").font(.title3.bold()).foregroundStyle(piano.attivo ? Tinta.investito : .secondary)
+                Text("\(piano.importoMensile.euro) al mese").font(.title3.bold()).foregroundStyle(piano.attivo ? Tinta.investito : .secondary)
                 Spacer()
                 Text("il \(piano.giorno)").foregroundStyle(.secondary)
             }
-            Text([piano.piattaforma, piano.conto.map { "da " + $0.nome }].compactMap { $0 }.joined(separator: " · "))
+            Text([piano.piattaforma, piano.conto.map { String(localized: "da \($0.nome)") }].compactMap { $0 }.joined(separator: " · "))
                 .font(.caption).foregroundStyle(.secondary)
             if correnti.isEmpty {
                 Text("Nessuno strumento: tocca per scegliere la ripartizione.").font(.caption).foregroundStyle(.orange)
@@ -196,7 +196,7 @@ struct PianoPACEditorView: View {
                     Text("Ripartizione")
                 } footer: {
                     let colore: Color = CalcoliInvestimenti.sommaCento(percentuali) ? .secondary : .red
-                    Text("Totale \((totale / 100).percento)" + (CalcoliInvestimenti.sommaCento(percentuali) ? "" : " — deve fare 100%"))
+                    Text(CalcoliInvestimenti.sommaCento(percentuali) ? String(localized: "Totale \((totale / 100).percento)") : String(localized: "Totale \((totale / 100).percento) — deve fare 100%"))
                         .foregroundStyle(colore)
                 }
 
@@ -206,7 +206,7 @@ struct PianoPACEditorView: View {
                         Section("Ripartizioni precedenti") {
                             ForEach(storico, id: \.dal) { set in
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("dal " + set.dal.breve).font(.caption).foregroundStyle(.secondary)
+                                    Text("dal \(set.dal.breve)").font(.caption).foregroundStyle(.secondary)
                                     Text(set.voci.map { ($0.percentuale / 100).percento + " " + ($0.strumento?.nome ?? "") }.joined(separator: " · "))
                                         .font(.subheadline)
                                 }

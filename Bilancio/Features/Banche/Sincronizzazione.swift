@@ -132,7 +132,7 @@ enum Sincronizzazione {
         // l'altra metà di un giroconto tra conti propri (se una regola imparata dice altro, vince la regola)
         if s.tipo == .giroconto || !s.appreso { Abbinamento.segnaGiroconto(m, in: context) }
         if s.prelievoContanti && importo < 0 {
-            let contanti = Movimento(data: data, importo: -importo, tipo: .giroconto, titolo: "Prelievo", origine: origine,
+            let contanti = Movimento(data: data, importo: -importo, tipo: .giroconto, titolo: String(localized: "Prelievo"), origine: origine,
                                      stato: .confermato, conto: DatiIniziali.contoContanti(in: context))
             contanti.descrizioneOriginale = descrizione
             context.insert(contanti)
@@ -168,18 +168,18 @@ enum Sincronizzazione {
         let ora = Date()
         for c in connessioni {
             var avvisi: [(Date, String, String)] = [
-                (c.scadenza.aggiungendo(giorni: -7), "7", "Il collegamento con \(c.banca) scade tra 7 giorni."),
-                (c.scadenza.aggiungendo(giorni: -1), "1", "Il collegamento con \(c.banca) scade domani."),
-                (c.scadenza, "0", "Il collegamento con \(c.banca) è scaduto: i movimenti non arrivano più."),
+                (c.scadenza.aggiungendo(giorni: -7), "7", String(localized: "Il collegamento con \(c.banca) scade tra 7 giorni.")),
+                (c.scadenza.aggiungendo(giorni: -1), "1", String(localized: "Il collegamento con \(c.banca) scade domani.")),
+                (c.scadenza, "0", String(localized: "Il collegamento con \(c.banca) è scaduto: i movimenti non arrivano più.")),
             ]
             if c.scadenza <= ora {
                 // già scaduta: un promemoria domani mattina (si sposta a ogni apertura dell'app)
                 let domani = calendario.date(bySettingHour: 10, minute: 0, second: 0, of: ora.aggiungendo(giorni: 1)) ?? ora.aggiungendo(giorni: 1)
-                avvisi = [(domani, "scaduta", "Il collegamento con \(c.banca) è scaduto: ricollegalo da Altro › Banche collegate.")]
+                avvisi = [(domani, "scaduta", String(localized: "Il collegamento con \(c.banca) è scaduto: ricollegalo da Altro › Banche collegate."))]
             }
             for (quando, suffisso, testo) in avvisi where quando > ora {
                 let contenuto = UNMutableNotificationContent()
-                contenuto.title = "Rinnova il collegamento con \(c.banca)"
+                contenuto.title = String(localized: "Rinnova il collegamento con \(c.banca)")
                 contenuto.body = testo
                 contenuto.sound = .default
                 let componenti = calendario.dateComponents([.year, .month, .day, .hour, .minute], from: quando)

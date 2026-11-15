@@ -8,10 +8,10 @@ enum TipoMovimento: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
     var etichetta: String {
         switch self {
-        case .spesa: "Spesa"
-        case .entrata: "Entrata"
-        case .giroconto: "Giroconto"
-        case .investimento: "Investimento"
+        case .spesa: String(localized: "Spesa")
+        case .entrata: String(localized: "Entrata")
+        case .giroconto: String(localized: "Giroconto")
+        case .investimento: String(localized: "Investimento")
         }
     }
     var icona: String {
@@ -33,12 +33,12 @@ enum Origine: String, Codable {
     case manuale, scontrino, banca, estratto, ricorrente, pac
     var etichetta: String {
         switch self {
-        case .manuale: "Inserito a mano"
-        case .scontrino: "Scontrino"
-        case .banca: "Banca collegata"
-        case .estratto: "Estratto conto importato"
-        case .ricorrente: "Ricorrente"
-        case .pac: "Piano di accumulo"
+        case .manuale: String(localized: "Inserito a mano")
+        case .scontrino: String(localized: "Scontrino")
+        case .banca: String(localized: "Banca collegata")
+        case .estratto: String(localized: "Estratto conto importato")
+        case .ricorrente: String(localized: "Ricorrente")
+        case .pac: String(localized: "Piano di accumulo")
         }
     }
 }
@@ -48,10 +48,10 @@ enum TipoConto: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
     var etichetta: String {
         switch self {
-        case .corrente: "Conto corrente"
-        case .carta: "Carta di credito"
-        case .contanti: "Contanti"
-        case .remunerato: "Conto remunerato"
+        case .corrente: String(localized: "Conto corrente")
+        case .carta: String(localized: "Carta di credito")
+        case .contanti: String(localized: "Contanti")
+        case .remunerato: String(localized: "Conto remunerato")
         }
     }
     var icona: String {
@@ -69,12 +69,12 @@ enum TipoStrumento: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
     var etichetta: String {
         switch self {
-        case .etf: "ETF"
-        case .azione: "Azione"
-        case .obbligazione: "Obbligazione"
-        case .fondo: "Fondo"
-        case .fondoPensione: "Fondo pensione"
-        case .gestione: "Gestione (robo-advisor)"
+        case .etf: String(localized: "ETF")
+        case .azione: String(localized: "Azione")
+        case .obbligazione: String(localized: "Obbligazione")
+        case .fondo: String(localized: "Fondo")
+        case .fondoPensione: String(localized: "Fondo pensione")
+        case .gestione: String(localized: "Gestione (robo-advisor)")
         }
     }
     /// Ha un prezzo di mercato recuperabile dall'ISIN.
@@ -86,13 +86,13 @@ enum TipoOperazione: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
     var etichetta: String {
         switch self {
-        case .acquisto: "Acquisto"
-        case .vendita: "Vendita"
-        case .versamento: "Versamento"
-        case .prelievo: "Prelievo"
-        case .dividendo: "Dividendo"
-        case .cedola: "Cedola"
-        case .commissione: "Commissione"
+        case .acquisto: String(localized: "Acquisto")
+        case .vendita: String(localized: "Vendita")
+        case .versamento: String(localized: "Versamento")
+        case .prelievo: String(localized: "Prelievo")
+        case .dividendo: String(localized: "Dividendo")
+        case .cedola: String(localized: "Cedola")
+        case .commissione: String(localized: "Commissione")
         }
     }
     /// Operazioni che aumentano il capitale versato.

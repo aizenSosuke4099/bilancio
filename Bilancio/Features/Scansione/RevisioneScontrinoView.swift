@@ -39,8 +39,11 @@ struct ScontrinoInRevisione: Identifiable {
         let b = esito.bozza
         let spesa = TipoMovimento.spesa.rawValue
         let categorie = (try? context.fetch(FetchDescriptor<Categoria>(predicate: #Predicate { $0.tipoRaw == spesa }))) ?? []
+        // i nomi proposti dalla lettura sono italiani; le categorie salvate possono essere tradotte
         func categoria(_ nome: String) -> Categoria? {
-            nome.isEmpty ? nil : categorie.first { $0.nome.compare(nome, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }
+            guard !nome.isEmpty else { return nil }
+            let nomi = [nome, DatiIniziali.localizzato(nome)]
+            return categorie.first { c in nomi.contains { c.nome.compare($0, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame } }
         }
         let prodotti = SalvataggioScansione.indiceProdotti(in: context)
         let totale = b.totale ?? b.righe.reduce(0) { $0 + $1.totale }.centesimi
@@ -221,9 +224,9 @@ struct RevisioneScontrinoView: View {
                     }
                 }
                 DatePicker("Data", selection: $s.data, displayedComponents: [.date, .hourAndMinute])
-                    .environment(\.locale, localeIT)
+                    
                 LabeledContent("Totale") {
-                    TextField("0,00", value: $s.totale, format: .number.precision(.fractionLength(2)).locale(localeIT))
+                    TextField("0,00", value: $s.totale, format: .number.precision(.fractionLength(2)))
                         .keyboardType(.decimalPad).multilineTextAlignment(.trailing).font(.body.bold().monospacedDigit())
                 }
                 if abs(sommaRighe - s.totale) >= 0.01, !s.righe.isEmpty {
@@ -247,7 +250,7 @@ struct RevisioneScontrinoView: View {
                     Toggle(isOn: $usaPagamentoBanca) {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Collegato al pagamento \(m.conto?.nome ?? "bancario") del \(m.data.breve) \(abs(m.importo).euro)")
+                                Text("Collegato al pagamento \(m.conto?.nome ?? String(localized: "bancario", comment: "nella frase «Collegato al pagamento bancario del …»")) del \(m.data.breve) \(abs(m.importo).euro)")
                                     .font(.subheadline)
                                 Text(m.titolo).font(.caption).foregroundStyle(.secondary)
                             }
@@ -383,7 +386,7 @@ struct RevisioneScontrinoView: View {
             dismiss()
         } catch {
             context.rollback()
-            errore = "Non sono riuscito a salvare lo scontrino: \(error.localizedDescription)"
+            errore = String(localized: "Non sono riuscito a salvare lo scontrino: \(error.localizedDescription)")
         }
     }
 }

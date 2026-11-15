@@ -70,10 +70,10 @@ enum LettoreScontrino {
             break
         case .unavailable(let motivo):
             let nota: String = switch motivo {
-            case .deviceNotEligible: "Questo iPhone non supporta Apple Intelligence: scontrino letto con le regole."
-            case .appleIntelligenceNotEnabled: "Attiva Apple Intelligence in Impostazioni per una lettura migliore. Scontrino letto con le regole."
-            case .modelNotReady: "Apple Intelligence si sta ancora preparando: scontrino letto con le regole."
-            @unknown default: "Apple Intelligence non disponibile: scontrino letto con le regole."
+            case .deviceNotEligible: String(localized: "Questo iPhone non supporta Apple Intelligence: scontrino letto con le regole.")
+            case .appleIntelligenceNotEnabled: String(localized: "Attiva Apple Intelligence in Impostazioni per una lettura migliore. Scontrino letto con le regole.")
+            case .modelNotReady: String(localized: "Apple Intelligence si sta ancora preparando: scontrino letto con le regole.")
+            @unknown default: String(localized: "Apple Intelligence non disponibile: scontrino letto con le regole.")
             }
             return Esito(bozza: regole, conAI: false, nota: nota)
         }
@@ -89,7 +89,7 @@ enum LettoreScontrino {
         }
 
         guard !regole.righe.isEmpty else {
-            return Esito(bozza: regole, conAI: false, nota: "Non ho trovato le righe dei prodotti: aggiungile a mano se ti servono.")
+            return Esito(bozza: regole, conAI: false, nota: String(localized: "Non ho trovato le righe dei prodotti: aggiungile a mano se ti servono."))
         }
         do {
             var b = regole
@@ -97,7 +97,7 @@ enum LettoreScontrino {
             return Esito(bozza: b, conAI: true, nota: nil)
         } catch {
             return Esito(bozza: regole, conAI: false,
-                         nota: "Apple Intelligence non è riuscita a classificare le righe (\(error.localizedDescription)): proposte fatte con le regole.")
+                         nota: String(localized: "Apple Intelligence non è riuscita a classificare le righe (\(error.localizedDescription)): proposte fatte con le regole."))
         }
     }
 
@@ -120,7 +120,7 @@ enum LettoreScontrino {
         let parti = blocchi(Array(righe.enumerated()))
         var esito = righe
         for (i, parte) in parti.enumerated() {
-            avanzamento(parti.count > 1 ? "Capisco le voci… (\(i + 1) di \(parti.count))" : "Capisco le voci…")
+            avanzamento(parti.count > 1 ? String(localized: "Capisco le voci… (\(i + 1) di \(parti.count))") : String(localized: "Capisco le voci…"))
             for v in try await classificaBlocco(parte.map { ($0.offset + 1, $0.element.testo) }, negozio: negozio, categorie: categorie) {
                 guard (1...esito.count).contains(v.numero) else { continue }
                 if let c = categoria(v.categoria, tra: categorie) { esito[v.numero - 1].categoria = c }
@@ -149,7 +149,7 @@ enum LettoreScontrino {
         let parti = blocchi(righe)
         var esito = BozzaScontrino()
         for (i, blocco) in parti.enumerated() {
-            avanzamento(parti.count > 1 ? "Leggo le voci con Apple Intelligence… (\(i + 1) di \(parti.count))" : "Leggo le voci con Apple Intelligence…")
+            avanzamento(parti.count > 1 ? String(localized: "Leggo le voci con Apple Intelligence… (\(i + 1) di \(parti.count))") : String(localized: "Leggo le voci con Apple Intelligence…"))
             for parte in try await rispondi(blocco, parte: i + 1, di: parti.count, categorie: categorie) {
                 if esito.negozio.isEmpty { esito.negozio = parte.negozio }
                 if esito.partitaIva.isEmpty { esito.partitaIva = parte.partitaIva }

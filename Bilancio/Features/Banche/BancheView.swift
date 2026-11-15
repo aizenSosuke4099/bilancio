@@ -138,7 +138,7 @@ struct BancheView: View {
         let accesso = url.startAccessingSecurityScopedResource()
         defer { if accesso { url.stopAccessingSecurityScopedResource() } }
         guard let testo = try? String(contentsOf: url, encoding: .utf8) else {
-            messaggio = "Non riesco a leggere il file."
+            messaggio = String(localized: "Non riesco a leggere il file.")
             return
         }
         // il file scaricato da Enable Banking si chiama <application id>.pem
@@ -215,9 +215,9 @@ struct BancheView: View {
                 }
                 .font(.caption.bold())
             }
-            Text(contiCollegati.isEmpty ? "\(c.accountUids.count) conti, nessuno abbinato" : contiCollegati.map(\.nome).joined(separator: ", "))
+            Text(contiCollegati.isEmpty ? String(localized: "\(c.accountUids.count) conti, nessuno abbinato") : contiCollegati.map(\.nome).joined(separator: ", "))
                 .font(.subheadline)
-            Text(c.ultimaSync.map { "Ultima sincronizzazione: \($0.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(localeIT)))" } ?? "Mai sincronizzato")
+            Text(c.ultimaSync.map { "Ultima sincronizzazione: \($0.formatted(.dateTime.day().month(.abbreviated).hour().minute()))" } ?? "Mai sincronizzato")
                 .font(.caption).foregroundStyle(.secondary)
             if let errore {
                 Label(errore, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(Tinta.spese)
@@ -286,7 +286,7 @@ fileprivate struct CollegaBancaView: View {
                     AbbinamentoContiView(sessione: sessione, banca: banca, scadenza: scadenza) { dismiss() }
                 }
             }
-            .navigationTitle(bancaScelta?.name ?? "Collega una banca")
+            .navigationTitle(bancaScelta?.name ?? String(localized: "Collega una banca"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
@@ -337,7 +337,7 @@ fileprivate struct CollegaBancaView: View {
 
     private func avvia(_ banca: EnableBanking.ASPSP) async {
         bancaScelta = banca
-        fase = .attesa("Contatto \(banca.name)…")
+        fase = .attesa(String(localized: "Contatto \(banca.name)…"))
         // 180 giorni, o meno se la banca concede meno (con 10 minuti di margine sugli orologi)
         let massimo = TimeInterval(banca.maximum_consent_validity ?? 180 * 86400)
         scadenzaRichiesta = Date().addingTimeInterval(min(180 * 86400, massimo) - 600)
@@ -363,14 +363,14 @@ fileprivate struct CollegaBancaView: View {
         let parametri = URLComponents(url: ritorno, resolvingAgainstBaseURL: false)?.queryItems ?? []
         func valore(_ nome: String) -> String? { parametri.first { $0.name == nome }?.value }
         if let e = valore("error") {
-            errore = "La banca ha rifiutato il consenso: \(valore("error_description") ?? e)"
+            errore = String(localized: "La banca ha rifiutato il consenso: \(valore("error_description") ?? e)")
             return
         }
         guard valore("state") == stato, let codice = valore("code"), let banca = bancaScelta else {
-            errore = "Risposta della banca non valida."
+            errore = String(localized: "Risposta della banca non valida.")
             return
         }
-        fase = .attesa("Creo il collegamento…")
+        fase = .attesa(String(localized: "Creo il collegamento…"))
         do {
             let sessione = try await EnableBanking.creaSessione(codice: codice)
             let scadenza = sessione.access?.valid_until.flatMap(EnableBanking.dataOra(da:)) ?? scadenzaRichiesta

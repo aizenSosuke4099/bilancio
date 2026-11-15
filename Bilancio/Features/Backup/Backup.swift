@@ -83,7 +83,7 @@ enum Backup {
 
     enum ErroreBackup: LocalizedError {
         case nonValido
-        var errorDescription: String? { "La cartella scelta non è un backup di Bilancio (manca \(Backup.nomeStore))." }
+        var errorDescription: String? { String(localized: "La cartella scelta non è un backup di Bilancio (manca \(Backup.nomeStore)).") }
     }
 
     /// Copia un backup (anche da iCloud Drive) in RipristinoInSospeso: verrà applicato alla prossima apertura.
@@ -135,12 +135,12 @@ enum Backup {
     /// Tutti i movimenti in CSV per Excel: separatore `;`, decimali con la virgola, UTF-8 con BOM.
     static func csvMovimenti(in context: ModelContext) -> String {
         let movimenti = (try? context.fetch(FetchDescriptor<Movimento>(sortBy: [SortDescriptor(\.data)]))) ?? []
-        var righe = ["Data;Tipo;Titolo;Categoria;Conto;Importo;Stato;Origine;Nota;Descrizione originale"]
+        var righe = [String(localized: "Data;Tipo;Titolo;Categoria;Conto;Importo;Stato;Origine;Nota;Descrizione originale", comment: "Intestazione CSV: tenere i 10 campi separati da punto e virgola")]
         for m in movimenti {
             let campi = [
                 m.data.breve, m.tipo.etichetta, m.titolo, m.categoria?.nome ?? "", m.conto?.nome ?? "",
-                m.importo.formatted(.number.precision(.fractionLength(2)).grouping(.never).locale(localeIT)),
-                m.daConfermare ? "Da confermare" : "Confermato", m.origine.etichetta, m.nota, m.descrizioneOriginale,
+                m.importo.formatted(.number.precision(.fractionLength(2)).grouping(.never)),
+                m.daConfermare ? String(localized: "Da confermare") : String(localized: "Confermato"), m.origine.etichetta, m.nota, m.descrizioneOriginale,
             ]
             righe.append(campi.map(campoCSV).joined(separator: ";"))
         }

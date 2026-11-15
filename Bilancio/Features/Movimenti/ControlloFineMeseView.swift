@@ -11,7 +11,7 @@ struct ControlloFineMeseView: View {
     @Query private var contiContanti: [Conto]
     @State private var daModificare: Movimento?
 
-    /// Categorie in cui di solito c'è uno scontrino da scansionare.
+    /// Categorie in cui di solito c'è uno scontrino da scansionare (nomi iniziali italiani, confrontati con `DatiIniziali.corrisponde`).
     private static let categorieDaScontrino: Set<String> = ["Spesa alimentare", "Casa e pulizia", "Cura personale", "Salute"]
 
     init(mese: Date) {
@@ -28,9 +28,9 @@ struct ControlloFineMeseView: View {
         movimenti.filter { $0.scontrino != nil && $0.idEsterno == nil && $0.conto?.tipo != .contanti }
     }
     private var pagamentiSenzaScontrino: [Movimento] {
-        movimenti.filter {
-            $0.idEsterno != nil && $0.scontrino == nil && $0.tipo == .spesa
-                && Self.categorieDaScontrino.contains($0.categoria?.nome ?? "")
+        movimenti.filter { m in
+            m.idEsterno != nil && m.scontrino == nil && m.tipo == .spesa
+                && Self.categorieDaScontrino.contains { DatiIniziali.corrisponde(m.categoria?.nome, a: $0) }
         }
     }
 

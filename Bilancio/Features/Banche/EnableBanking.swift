@@ -41,7 +41,7 @@ enum EnableBanking {
         var iban: String? { account_id?.iban ?? account_id?.other?.identification }
         /// Nome leggibile: nome del conto, prodotto o IBAN.
         var descrizione: String {
-            [name, product, details].compactMap { $0 }.first { !$0.isEmpty } ?? iban ?? "Conto"
+            [name, product, details].compactMap { $0 }.first { !$0.isEmpty } ?? iban ?? String(localized: "Conto")
         }
     }
 
@@ -123,8 +123,8 @@ enum EnableBanking {
 
         var errorDescription: String? {
             switch self {
-            case .credenzialiMancanti: "Imposta Application ID e chiave privata di Enable Banking."
-            case .chiaveNonValida(let m): "Chiave privata non valida: \(m)"
+            case .credenzialiMancanti: String(localized: "Imposta Application ID e chiave privata di Enable Banking.")
+            case .chiaveNonValida(let m): String(localized: "Chiave privata non valida: \(m)")
             case .api(let codice, let m): "Enable Banking (\(codice)): \(m)"
             }
         }
@@ -150,7 +150,7 @@ enum EnableBanking {
             "language": "it",
         ]
         let r: R = try await chiama("POST", "/auth", corpo: corpo)
-        guard let url = URL(string: r.url) else { throw Errore.api(0, "URL di autorizzazione non valido") }
+        guard let url = URL(string: r.url) else { throw Errore.api(0, String(localized: "URL di autorizzazione non valido")) }
         return url
     }
 
@@ -229,7 +229,7 @@ enum EnableBanking {
         let chiave = try chiaveRSA(pem: chiavePEM)
         var errore: Unmanaged<CFError>?
         guard let firma = SecKeyCreateSignature(chiave, .rsaSignatureMessagePKCS1v15SHA256, daFirmare as CFData, &errore) as Data? else {
-            throw Errore.chiaveNonValida(errore?.takeRetainedValue().localizedDescription ?? "firma non riuscita")
+            throw Errore.chiaveNonValida(errore?.takeRetainedValue().localizedDescription ?? String(localized: "firma non riuscita"))
         }
         return h + "." + p + "." + base64URL(firma)
     }
@@ -241,16 +241,16 @@ enum EnableBanking {
     /// Chiave privata RSA da PEM, PKCS#1 ("BEGIN RSA PRIVATE KEY") o PKCS#8 ("BEGIN PRIVATE KEY").
     /// Security vuole PKCS#1: da un PKCS#8 si estrae l'OCTET STRING interno.
     static func chiaveRSA(pem: String) throws -> SecKey {
-        if pem.contains("ENCRYPTED") { throw Errore.chiaveNonValida("la chiave è protetta da password: esportala senza password") }
+        if pem.contains("ENCRYPTED") { throw Errore.chiaveNonValida(String(localized: "la chiave è protetta da password: esportala senza password")) }
         let b64 = pem.components(separatedBy: .newlines).filter { !$0.hasPrefix("-----") }.joined()
         guard var der = Data(base64Encoded: b64, options: .ignoreUnknownCharacters), !der.isEmpty else {
-            throw Errore.chiaveNonValida("formato PEM non riconosciuto")
+            throw Errore.chiaveNonValida(String(localized: "formato PEM non riconosciuto"))
         }
         if let interna = pkcs1DaPKCS8(der) { der = interna }
         let attributi: [CFString: Any] = [kSecAttrKeyType: kSecAttrKeyTypeRSA, kSecAttrKeyClass: kSecAttrKeyClassPrivate]
         var errore: Unmanaged<CFError>?
         guard let chiave = SecKeyCreateWithData(der as CFData, attributi as CFDictionary, &errore) else {
-            throw Errore.chiaveNonValida(errore?.takeRetainedValue().localizedDescription ?? "chiave RSA non leggibile")
+            throw Errore.chiaveNonValida(errore?.takeRetainedValue().localizedDescription ?? String(localized: "chiave RSA non leggibile"))
         }
         return chiave
     }

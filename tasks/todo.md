@@ -31,7 +31,7 @@ Stato e specifica condivisa. **Se la sessione si interrompe, riparti da qui.**
 - Xcode project con cartella sincronizzata `Bilancio/` (ogni file .swift dentro è compilato automaticamente).
 - SwiftUI + SwiftData + Swift Charts + VisionKit + Vision + FoundationModels + PDFKit. **Nessuna dipendenza esterna.**
 - Swift 5 mode, `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Target iOS 26.0.
-- **Codice, nomi e commenti in italiano.** UI in italiano.
+- **Codice, nomi e commenti in italiano.** UI in italiano (lingua sorgente) e inglese.
 - Importi `Double` con segno sui `Movimento` (< 0 uscita). Enum salvati come `*Raw: String`.
 
 ### File condivisi (NON modificare dai sotto-agenti; se serve qualcosa, estensioni nel proprio folder)
@@ -77,6 +77,7 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - [x] E Inflazione, archivio, categorie, backup, impostazioni, Face ID, scadenza firma
 - [x] Integrazione (merge dei rami) + build — OK
 - [x] Test su simulatore (dati di esempio): le 5 schede si aprono e mostrano i dati. Sottopagine non toccate (accesso al pannello simulatore non concesso).
+- [x] Multilingua: italiano + inglese (vedi sotto)
 - [ ] Installazione su iPhone (l'utente: Apple ID in Xcode › Settings › Accounts, Modalità sviluppatore sull'iPhone)
 
 ### Note operative (15/11 notte)
@@ -88,3 +89,14 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
   va concesso al primo avvio (tap su "Consenti").
 - Test simulatore (15/11 03:40): OK dopo l'aggiornamento macOS (21 GB liberi). Al primo avvio dopo il boot l'app impiega ~15-20 s:
   aspettare prima dello screenshot. Corretto il "-7726% delle entrate" a metà mese (`Totali.tassoSignificativo`).
+
+### Multilingua (15/11)
+- `Bilancio/Localizable.xcstrings`: chiavi = testo italiano, traduzione inglese. Le stringhe in `Text`/`Label`/`Button` e nei
+  parametri `LocalizedStringKey` (`Scheda`, `RiquadroKPI`, `SchedaConsigli`…) si estraggono da sole; le `String` vanno scritte
+  con `String(localized: "…")`. Per aggiungere una lingua: aprire il catalogo in Xcode e aggiungerla.
+- `Bilancio/DatiIniziali.xcstrings`: nomi di categorie e conto Contanti creati al primo avvio (si salvano nella lingua del telefono).
+  Le tabelle in `DatiIniziali.swift` e le parole chiave del `Classificatore` restano in italiano: per cercare una categoria per nome
+  usare `Classificatore.categoria(nome:in:)`, `DatiIniziali.localizzato(_:)` o `DatiIniziali.corrisponde(_:a:)`.
+- Numeri e date: formato della lingua del telefono (niente `.locale(...)` fisso); gli importi restano in euro.
+  `localeIT` serve solo a leggere scontrini, estratti conto e parole chiave, che restano italiani.
+- Prova in inglese: `-demo -tab N -AppleLanguages (en)` dopo aver disinstallato l'app (i dati demo si creano solo a database vuoto).

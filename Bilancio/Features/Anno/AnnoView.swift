@@ -49,7 +49,7 @@ struct AnnoView: View {
                                     colore: Tinta.risparmio,
                                     coloreNota: totali.risparmio >= 0 ? Tinta.entrate : Tinta.spese)
                         RiquadroKPI(titolo: "Investito", valore: totali.investito.euroTondo,
-                                    nota: piattaforme.isEmpty ? nil : piattaforme.prefix(3).map(\.nome).joined(separator: ", ") + (piattaforme.count > 3 ? "…" : ""),
+                                    nota: piattaforme.isEmpty ? nil : "\(piattaforme.prefix(3).map(\.nome).joined(separator: ", "))\(piattaforme.count > 3 ? "…" : "")",
                                     colore: Tinta.investito)
                     }
                     RiquadroKPI(titolo: "Patrimonio netto", valore: patrimonioFine.euroTondo,
@@ -87,9 +87,9 @@ struct AnnoView: View {
 
     /// "Riepilogo annuale · gen–nov"
     private func sottotitolo(_ mesi: [DatiMeseAnno]) -> String {
-        guard let primo = mesi.first, let ultimo = mesi.last else { return "Riepilogo annuale" }
-        if primo.mese == ultimo.mese { return "Riepilogo annuale · \(primo.mese.meseBreve)" }
-        return "Riepilogo annuale · \(primo.mese.meseBreve)–\(ultimo.mese.meseBreve)"
+        guard let primo = mesi.first, let ultimo = mesi.last else { return String(localized: "Riepilogo annuale") }
+        if primo.mese == ultimo.mese { return String(localized: "Riepilogo annuale · \(primo.mese.meseBreve)") }
+        return String(localized: "Riepilogo annuale · \(primo.mese.meseBreve)–\(ultimo.mese.meseBreve)")
     }
 }
 
@@ -107,27 +107,28 @@ fileprivate struct GraficoEntrateSpeseAnno: View {
     let mesi: [DatiMeseAnno]
 
     var body: some View {
+        let entrate = String(localized: "Entrate"), spese = String(localized: "Spese"), risparmio = String(localized: "Risparmio")
         Chart {
             ForEach(mesi) { d in
                 BarMark(x: .value("Mese", d.mese, unit: .month), y: .value("Importo", d.totali.entrate))
-                    .foregroundStyle(by: .value("Serie", "Entrate"))
-                    .position(by: .value("Serie", "Entrate"))
+                    .foregroundStyle(by: .value("Serie", entrate))
+                    .position(by: .value("Serie", entrate))
                 BarMark(x: .value("Mese", d.mese, unit: .month), y: .value("Importo", d.totali.spese))
-                    .foregroundStyle(by: .value("Serie", "Spese"))
-                    .position(by: .value("Serie", "Spese"))
+                    .foregroundStyle(by: .value("Serie", spese))
+                    .position(by: .value("Serie", spese))
                 LineMark(x: .value("Mese", d.mese, unit: .month), y: .value("Importo", d.totali.risparmio))
-                    .foregroundStyle(by: .value("Serie", "Risparmio"))
+                    .foregroundStyle(by: .value("Serie", risparmio))
                     .symbol(.circle)
                     .symbolSize(20)
             }
         }
-        .chartForegroundStyleScale(["Entrate": Tinta.entrate, "Spese": Tinta.spese, "Risparmio": Color.primary])
+        .chartForegroundStyleScale([entrate: Tinta.entrate, spese: Tinta.spese, risparmio: Color.primary])
         .chartXAxis {
             AxisMarks(values: .stride(by: .month)) { _ in
                 AxisValueLabel(format: .dateTime.month(.narrow), centered: true)
             }
         }
-        .environment(\.locale, localeIT)
+        
         .frame(height: 190)
     }
 }
@@ -149,7 +150,7 @@ fileprivate struct SchedaCiambellaAnno: View {
         let totale = voci.reduce(0) { $0 + $1.importo }
         var fette = voci.prefix(5).map { FettaAnno(id: $0.id, nome: $0.nome, colore: Color(hex: $0.coloreHex), importo: $0.importo, categoria: $0.categoria) }
         let resto = voci.dropFirst(5).reduce(0) { $0 + $1.importo }
-        if resto > 0 { fette.append(FettaAnno(id: "_altre", nome: "Altre categorie", colore: Color(.systemGray4), importo: resto, categoria: nil)) }
+        if resto > 0 { fette.append(FettaAnno(id: "_altre", nome: String(localized: "Altre categorie"), colore: Color(.systemGray4), importo: resto, categoria: nil)) }
 
         return Scheda(titolo: "Dove sono andati i soldi") {
             if fette.isEmpty {
@@ -224,7 +225,7 @@ fileprivate struct CategorieAnnoView: View {
             }
             .disabled(v.categoria == nil)
         }
-        .navigationTitle("Spese " + String(anno))
+        .navigationTitle(String(localized: "Spese \(String(anno))"))
     }
 }
 
@@ -233,21 +234,22 @@ fileprivate struct GraficoPatrimonioAnno: View {
     let punti: [CalcoliDashboard.PuntoPatrimonio]
 
     var body: some View {
+        let investimenti = String(localized: "Investimenti"), liquidita = String(localized: "Conti + contanti")
         Chart {
             ForEach(punti) { p in
                 AreaMark(x: .value("Data", p.mese.inizioMeseSuccessivo), y: .value("Valore", p.investimenti))
-                    .foregroundStyle(by: .value("Tipo", "Investimenti"))
+                    .foregroundStyle(by: .value("Tipo", investimenti))
                 AreaMark(x: .value("Data", p.mese.inizioMeseSuccessivo), y: .value("Valore", p.liquidita))
-                    .foregroundStyle(by: .value("Tipo", "Conti + contanti"))
+                    .foregroundStyle(by: .value("Tipo", liquidita))
             }
         }
-        .chartForegroundStyleScale(["Investimenti": Color(hex: "#6366F1"), "Conti + contanti": Color(hex: "#C7D2FE")])
+        .chartForegroundStyleScale([investimenti: Color(hex: "#6366F1"), liquidita: Color(hex: "#C7D2FE")])
         .chartXAxis {
             AxisMarks(values: .stride(by: .month)) { _ in
                 AxisValueLabel(format: .dateTime.month(.narrow))
             }
         }
-        .environment(\.locale, localeIT)
+        
         .frame(height: 150)
     }
 }
@@ -262,20 +264,21 @@ fileprivate struct SchedaTabellaMesiAnno: View {
 
     var body: some View {
         Scheda(titolo: "Mese per mese", etichetta: mesi.isEmpty ? nil : "tocca un mese") {
-            RigaTabellaAnno(etichetta: "", entrate: "Entrate", spese: "Spese", risparmio: "Risp.", tasso: "%", colore: .secondary)
+            RigaTabellaAnno(etichetta: "", entrate: String(localized: "Entrate"), spese: String(localized: "Spese"),
+                            risparmio: String(localized: "Risp.", comment: "Intestazione abbreviata della colonna Risparmio"), tasso: "%", colore: .secondary)
             Divider()
             ForEach(mesi) { d in
                 let basso = d.totali.entrate > 0 ? d.totali.tassoRisparmio < sogliaBassa : d.totali.spese > 0
                 NavigationLink {
                     MeseContenuto(mese: d.mese)
                 } label: {
-                    riga(d.mese.meseBreve.capitalized(with: localeIT), d.totali, basso: basso)
+                    riga(d.mese.meseBreve.capitalized(with: .current), d.totali, basso: basso)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 Divider()
             }
-            riga("Tot", totali, basso: false).bold()
+            riga(String(localized: "Tot", comment: "Riga del totale annuo, abbreviato"), totali, basso: false).bold()
         }
     }
 

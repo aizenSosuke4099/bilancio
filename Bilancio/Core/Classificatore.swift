@@ -44,8 +44,10 @@ enum Classificatore {
         return try? context.fetch(d).first
     }
 
+    /// Categoria per nome italiano (quello delle tabelle) o nella lingua del telefono (`DatiIniziali.localizzato`).
     static func categoria(nome: String, in context: ModelContext) -> Categoria? {
-        var d = FetchDescriptor<Categoria>(predicate: #Predicate { $0.nome == nome })
+        let tradotto = DatiIniziali.localizzato(nome)
+        var d = FetchDescriptor<Categoria>(predicate: #Predicate { $0.nome == nome || $0.nome == tradotto })
         d.fetchLimit = 1
         return try? context.fetch(d).first
     }
@@ -98,7 +100,7 @@ enum Classificatore {
         }
         let norm = normalizza(descrizione)
         if contiene(norm, paroleChiavePrelievo) {
-            return Suggerimento(tipo: .giroconto, categoria: nil, titolo: "Prelievo contanti", appreso: false, prelievoContanti: true)
+            return Suggerimento(tipo: .giroconto, categoria: nil, titolo: String(localized: "Prelievo contanti"), appreso: false, prelievoContanti: true)
         }
         for (parole, tipo, nomeCategoria) in tabella where contiene(norm, parole) {
             // una "spesa" con importo positivo è quasi sempre un rimborso: resta spesa (riduce il totale)

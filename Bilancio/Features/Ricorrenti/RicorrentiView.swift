@@ -114,12 +114,12 @@ fileprivate struct RicorrenzaDaModificare: Identifiable {
 
 fileprivate func etichettaFrequenza(_ ogniMesi: Int) -> String {
     switch ogniMesi {
-    case 1: "Mensile"
-    case 2: "Bimestrale"
-    case 3: "Trimestrale"
-    case 6: "Semestrale"
-    case 12: "Annuale"
-    default: "Ogni \(ogniMesi) mesi"
+    case 1: String(localized: "Mensile")
+    case 2: String(localized: "Bimestrale")
+    case 3: String(localized: "Trimestrale")
+    case 6: String(localized: "Semestrale")
+    case 12: String(localized: "Annuale")
+    default: String(localized: "Ogni \(ogniMesi) mesi")
     }
 }
 
@@ -147,10 +147,10 @@ fileprivate struct RigaRicorrenza: View {
     }
 
     private var dettagli: String {
-        var parti = ["\(etichettaFrequenza(ricorrenza.ogniMesi)), il \(ricorrenza.giorno)"]
+        var parti = [String(localized: "\(etichettaFrequenza(ricorrenza.ogniMesi)), il \(ricorrenza.giorno)")]
         if let c = ricorrenza.categoria { parti.append(c.nome) }
         if let c = ricorrenza.conto { parti.append(c.nome) }
-        if !ricorrenza.attiva { parti.append("in pausa") }
+        if !ricorrenza.attiva { parti.append(String(localized: "in pausa")) }
         return parti.joined(separator: " · ")
     }
 }
@@ -226,7 +226,7 @@ fileprivate struct EditorRicorrenza: View {
     private func carica() {
         guard let r = ricorrenza else { return }
         nome = r.nome
-        importo = abs(r.importo).formatted(.number.precision(.fractionLength(2)).locale(localeIT))
+        importo = abs(r.importo).formatted(.number.precision(.fractionLength(2)))
         tipo = r.tipo
         ogniMesi = r.ogniMesi
         giorno = r.giorno

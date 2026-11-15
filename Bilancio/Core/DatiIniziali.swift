@@ -1,8 +1,20 @@
 import Foundation
 import SwiftData
 
-/// Categorie e conti creati al primo avvio (modificabili dopo).
+/// Categorie e conti creati al primo avvio (modificabili dopo), salvati nella lingua del telefono.
+/// Le tabelle restano in italiano perché le usano anche le parole chiave del Classificatore;
+/// le traduzioni stanno nel catalogo `DatiIniziali.xcstrings`.
 enum DatiIniziali {
+
+    /// Nome iniziale nella lingua del telefono ("Spesa alimentare" → "Groceries").
+    static func localizzato(_ nome: String) -> String {
+        Bundle.main.localizedString(forKey: nome, value: nome, table: "DatiIniziali")
+    }
+
+    /// Vero se `nome` è il nome iniziale `nomeIT`, in italiano o nella lingua del telefono.
+    static func corrisponde(_ nome: String?, a nomeIT: String) -> Bool {
+        nome == nomeIT || nome == localizzato(nomeIT)
+    }
 
     static let categorieSpesa: [(String, String, String, Bool)] = [
         // nome, SF Symbol, colore, detraibile
@@ -40,13 +52,13 @@ enum DatiIniziali {
         let n = (try? context.fetchCount(FetchDescriptor<Categoria>())) ?? 0
         guard n == 0 else { return }
         for (i, c) in categorieSpesa.enumerated() {
-            context.insert(Categoria(nome: c.0, icona: c.1, coloreHex: c.2, tipo: .spesa, detraibile: c.3, ordine: i))
+            context.insert(Categoria(nome: localizzato(c.0), icona: c.1, coloreHex: c.2, tipo: .spesa, detraibile: c.3, ordine: i))
         }
         for (i, c) in categorieEntrata.enumerated() {
-            context.insert(Categoria(nome: c.0, icona: c.1, coloreHex: c.2, tipo: .entrata, ordine: 100 + i))
+            context.insert(Categoria(nome: localizzato(c.0), icona: c.1, coloreHex: c.2, tipo: .entrata, ordine: 100 + i))
         }
         for (i, c) in conti.enumerated() {
-            context.insert(Conto(nome: c.0, tipo: c.1, istituto: c.2, coloreHex: c.3, ordine: i))
+            context.insert(Conto(nome: localizzato(c.0), tipo: c.1, istituto: c.2, coloreHex: c.3, ordine: i))
         }
         try? context.save()
     }
@@ -57,7 +69,7 @@ enum DatiIniziali {
         if let c = try? context.fetch(FetchDescriptor<Conto>(predicate: #Predicate { $0.tipoRaw == tipo })).first {
             return c
         }
-        let c = Conto(nome: "Contanti", tipo: .contanti, coloreHex: "#16A34A", ordine: 99)
+        let c = Conto(nome: localizzato("Contanti"), tipo: .contanti, coloreHex: "#16A34A", ordine: 99)
         context.insert(c)
         return c
     }

@@ -49,7 +49,7 @@ struct ScansioneView: View {
                     annullato: { mostraFotocamera = false },
                     errore: { e in
                         mostraFotocamera = false
-                        errore = "La fotocamera non ha funzionato: \(e.localizedDescription)"
+                        errore = String(localized: "La fotocamera non ha funzionato: \(e.localizedDescription)")
                     }
                 )
                 .ignoresSafeArea()
@@ -123,8 +123,8 @@ struct ScansioneView: View {
                         HStack(spacing: 10) {
                             MiniaturaScansione(dati: s.immagine)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(s.negozio.isEmpty ? "Scontrino" : s.negozio).font(.subheadline.weight(.medium)).lineLimit(1)
-                                Text("\(s.data.giornoMese) \(s.data.anno) · \(s.righe.count) righe").font(.caption).foregroundStyle(.secondary)
+                                Text(s.negozio.isEmpty ? String(localized: "Scontrino") : s.negozio).font(.subheadline.weight(.medium)).lineLimit(1)
+                                Text("\(s.data.giornoMese) \(String(s.data.anno)) · \(s.righe.count) righe").font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
                             Text(s.totale.euro).font(.callout.monospacedDigit())
@@ -171,35 +171,35 @@ struct ScansioneView: View {
         guard !selezioneFoto.isEmpty else { return }
         let elementi = selezioneFoto
         selezioneFoto = []
-        avanzamento = "Apro le foto…"
+        avanzamento = String(localized: "Apro le foto…")
         var immagini: [UIImage] = []
         for e in elementi {
             if let dati = try? await e.loadTransferable(type: Data.self), let img = UIImage(data: dati) { immagini.append(img) }
         }
         guard !immagini.isEmpty else {
             avanzamento = nil
-            errore = "Non riesco ad aprire le foto scelte. Se sono su iCloud, attendi che vengano scaricate e riprova."
+            errore = String(localized: "Non riesco ad aprire le foto scelte. Se sono su iCloud, attendi che vengano scaricate e riprova.")
             return
         }
         await analizza(immagini)
     }
 
     private func analizza(_ immagini: [UIImage]) async {
-        avanzamento = "Leggo lo scontrino…"
+        avanzamento = String(localized: "Leggo lo scontrino…")
         defer { avanzamento = nil }
         do {
             let testo = try await LettoreScontrino.leggiTesto(da: immagini)
             guard testo.filter(\.isLetter).count >= 5 else {
-                errore = "Non trovo testo nella foto. Riprova con più luce, lo scontrino disteso e tutto inquadrato."
+                errore = String(localized: "Non trovo testo nella foto. Riprova con più luce, lo scontrino disteso e tutto inquadrato.")
                 return
             }
             let spesa = TipoMovimento.spesa.rawValue
             let categorie = ((try? context.fetch(FetchDescriptor<Categoria>(predicate: #Predicate { $0.tipoRaw == spesa }, sortBy: [SortDescriptor(\.ordine)]))) ?? []).map(\.nome)
-            avanzamento = "Capisco le voci…"
+            avanzamento = String(localized: "Capisco le voci…")
             let esito = await LettoreScontrino.estrai(testo: testo, categorie: categorie) { avanzamento = $0 }
             revisione = ScontrinoInRevisione.prepara(esito, immagini: immagini, testoOCR: testo, in: context)
         } catch {
-            errore = "Non sono riuscito a leggere lo scontrino: \(error.localizedDescription)"
+            errore = String(localized: "Non sono riuscito a leggere lo scontrino: \(error.localizedDescription)")
         }
     }
 }

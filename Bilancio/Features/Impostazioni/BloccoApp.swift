@@ -65,10 +65,10 @@ struct BloccoApp<Contenuto: View>: View {
             return
         }
         do {
-            sbloccata = try await ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Sblocca i tuoi dati finanziari")
+            sbloccata = try await ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: String(localized: "Sblocca i tuoi dati finanziari"))
             errore = nil
         } catch {
-            errore = "Autenticazione non riuscita. Riprova."
+            errore = String(localized: "Autenticazione non riuscita. Riprova.")
         }
     }
 }

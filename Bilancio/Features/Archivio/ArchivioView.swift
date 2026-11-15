@@ -35,7 +35,7 @@ struct ArchivioView: View {
                         }
                     } header: {
                         HStack {
-                            Text(g.mese.meseAnno.capitalized(with: localeIT))
+                            Text(g.mese.meseAnno.capitalized(with: .current))
                             Spacer()
                             Text(g.scontrini.reduce(0) { $0 + $1.totale }.euro)
                         }
@@ -85,8 +85,9 @@ private struct RigaNegozioArchivio: View {
                 .frame(width: 38, height: 38)
                 .background(coloreNegozio(nome), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
-                Text(nome.isEmpty ? "Senza negozio" : nome).lineLimit(1)
-                Text("\(scontrini.count) scontrin\(scontrini.count == 1 ? "o" : "i") · ultimo \(scontrini.map(\.data).max()?.breve ?? "")")
+                let ultimo = scontrini.map(\.data).max()?.breve ?? ""
+                Text(nome.isEmpty ? String(localized: "Senza negozio") : nome).lineLimit(1)
+                Text(scontrini.count == 1 ? "1 scontrino · ultimo \(ultimo)" : "\(scontrini.count) scontrini · ultimo \(ultimo)")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
@@ -121,7 +122,7 @@ private struct RigaScontrinoArchivio: View {
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(conNegozio ? scontrino.negozio : scontrino.data.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).year().locale(localeIT)))
+                Text(conNegozio ? scontrino.negozio : scontrino.data.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).year()))
                     .lineLimit(1)
                 Text("\(conNegozio ? scontrino.data.breve + " · " : "")\(scontrino.righe.count) righe")
                     .font(.caption).foregroundStyle(.secondary)
@@ -164,7 +165,7 @@ private struct ScontriniNegozioArchivio: View {
                 }
             }
         }
-        .navigationTitle(negozio.isEmpty ? "Senza negozio" : negozio)
+        .navigationTitle(negozio.isEmpty ? String(localized: "Senza negozio") : negozio)
         .toolbar {
             Menu {
                 Button { nuovoNome = negozio; rinomina = true } label: { Label("Rinomina negozio…", systemImage: "pencil") }

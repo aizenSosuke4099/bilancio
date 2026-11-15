@@ -99,13 +99,13 @@ struct DettaglioStrumentoView: View {
         let colore = guadagno >= 0 ? Tinta.entrate : Tinta.spese
         let quote = Portafoglio.quote(s)
         return LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-            RiquadroKPI(titolo: "Valore", valore: valore.euro, nota: s.valuta != "EUR" ? Portafoglio.valore(s).valuta(s.valuta) : nil, colore: Tinta.investito)
+            RiquadroKPI(titolo: "Valore", valore: valore.euro, nota: s.valuta != "EUR" ? "\(Portafoglio.valore(s).valuta(s.valuta))" : nil, colore: Tinta.investito)
             RiquadroKPI(titolo: "Versato", valore: versato.euro)
             RiquadroKPI(titolo: "Guadagno", valore: (guadagno >= 0 ? "+" : "") + guadagno.euro,
-                        nota: versato > 0 ? (guadagno / versato).percentoConSegno : nil, colore: colore, coloreNota: colore)
+                        nota: versato > 0 ? "\((guadagno / versato).percentoConSegno)" : nil, colore: colore, coloreNota: colore)
             if !s.valoreManuale || quote > 0 {
                 RiquadroKPI(titolo: s.tipo == .obbligazione ? "Nominale" : "Quote", valore: quote.quote,
-                            nota: Portafoglio.prezzoMedio(s).map { "carico medio " + prezzoTesto($0) })
+                            nota: Portafoglio.prezzoMedio(s).map { "carico medio \(prezzoTesto($0))" })
             }
         }
     }
@@ -114,7 +114,7 @@ struct DettaglioStrumentoView: View {
         let anno = Date().anno
         let versato = strumento.operazioni.filter { $0.data.anno == anno && $0.tipo.entraCapitale }
             .reduce(0) { $0 + ($1.importo + $1.commissioni) * $1.cambioEUR }
-        return Scheda(titolo: "Deducibilità \(anno)") {
+        return Scheda(titolo: "Deducibilità \(String(anno))") {
             Text("Versato quest'anno **\(versato.euro)** di \(limiteDeducibile.euro) deducibili")
                 .font(.subheadline)
             ProgressView(value: min(versato, limiteDeducibile), total: limiteDeducibile)
@@ -137,7 +137,7 @@ struct DettaglioStrumentoView: View {
             }
         } else if s.valutazioni.count >= 2 {
             let punti = s.valutazioni.sorted { $0.data < $1.data }
-            Scheda(titolo: "Valore", etichetta: s.valuta) {
+            Scheda(titolo: "Valore", etichetta: "\(s.valuta)") {
                 Chart(punti) { v in
                     LineMark(x: .value("Data", v.data), y: .value("Valore", v.valore))
                         .interpolationMethod(.stepEnd)
@@ -171,7 +171,7 @@ struct DettaglioStrumentoView: View {
                     HStack(spacing: 8) {
                         if s.ticker != nil {
                             Button { Task { await aggiornaPrezzo() } } label: {
-                                Label(aggiornando ? "Aggiorno…" : "Aggiorna prezzo", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
+                                Label(aggiornando ? String(localized: "Aggiorno…") : String(localized: "Aggiorna prezzo"), systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
                             .disabled(aggiornando)
@@ -194,13 +194,13 @@ struct DettaglioStrumentoView: View {
                 if !s.isin.isEmpty { riga("ISIN", s.isin) }
                 if let t = s.ticker { riga("Listino Yahoo", t) }
                 riga("Valuta", s.valuta)
-                if s.valuta != "EUR" { riga("Cambio", "1 \(s.valuta) = " + Portafoglio.cambio(s.valuta).formatted(.number.precision(.fractionLength(4)).locale(localeIT)) + " €") }
+                if s.valuta != "EUR" { riga("Cambio", "1 \(s.valuta) = " + Portafoglio.cambio(s.valuta).formatted(.number.precision(.fractionLength(4))) + " €") }
                 if let p = s.ultimoPrezzo, !s.valoreManuale {
                     riga("Ultimo prezzo", prezzoTesto(s.tipo == .obbligazione ? p / 100 : p) + (s.ultimoPrezzoData.map { " · " + $0.breve } ?? ""))
                 }
-                if let c = s.cedola { riga("Cedola", (c / 100).percento + " annua") }
+                if let c = s.cedola { riga("Cedola", String(localized: "\((c / 100).percento) annua")) }
                 if let d = s.scadenza { riga("Scadenza", d.breve) }
-                if s.valoreManuale { riga("Valore", "aggiornato a mano") }
+                if s.valoreManuale { riga("Valore", String(localized: "aggiornato a mano")) }
             }
             .font(.subheadline)
         }
@@ -249,7 +249,7 @@ struct DettaglioStrumentoView: View {
 
     // MARK: - Supporto
 
-    private func riga(_ titolo: String, _ valore: String) -> some View {
+    private func riga(_ titolo: LocalizedStringKey, _ valore: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(titolo).foregroundStyle(.secondary)
             Spacer()
@@ -260,7 +260,7 @@ struct DettaglioStrumentoView: View {
     /// Prezzo unitario; per le obbligazioni in % del nominale.
     private func prezzoTesto(_ unitario: Double) -> String {
         strumento.tipo == .obbligazione
-            ? (unitario * 100).formatted(.number.precision(.fractionLength(2)).locale(localeIT)) + " %"
+            ? (unitario * 100).formatted(.number.precision(.fractionLength(2))) + " %"
             : unitario.valuta(strumento.valuta)
     }
 
@@ -289,7 +289,7 @@ struct DettaglioStrumentoView: View {
         guard abs(differenza) > 1e-9 else { return }
         let op = Operazione(data: Date(), tipo: differenza > 0 ? .acquisto : .vendita, quote: abs(differenza), prezzo: 0, importo: 0,
                             cambioEUR: Portafoglio.cambio(strumento.valuta))
-        op.nota = "Riallineamento"
+        op.nota = String(localized: "Riallineamento")
         context.insert(op)
         op.strumento = strumento
         try? context.save()
@@ -318,7 +318,7 @@ private struct RigaOperazioneInvestimenti: View {
                 Text(op.importo.valuta(valuta)).font(.subheadline.monospacedDigit())
                     .foregroundStyle(op.tipo.esceCapitale ? Tinta.spese : (op.tipo == .dividendo || op.tipo == .cedola ? Tinta.entrate : .primary))
                 if op.quote > 0 {
-                    Text((op.tipo == .vendita ? "−" : "+") + op.quote.quote + " q.").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    Text((op.tipo == .vendita ? "−" : "+") + String(localized: "\(op.quote.quote) q.")).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 }
             }
         }
@@ -329,11 +329,11 @@ private struct RigaOperazioneInvestimenti: View {
 /// Foglio con un solo numero (e una data facoltativa): valore, quote reali, prezzo a mano.
 private struct FoglioValoreInvestimenti: View {
     @Environment(\.dismiss) private var dismiss
-    let titolo: String
-    let etichetta: String
+    let titolo: LocalizedStringKey
+    let etichetta: LocalizedStringKey
     let unita: String?
     let conData: Bool
-    let nota: String
+    let nota: LocalizedStringKey
     let iniziale: Double
     let onSalva: (Double, Date) -> Void
 

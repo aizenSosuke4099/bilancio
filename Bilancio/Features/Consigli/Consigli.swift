@@ -18,7 +18,7 @@ enum Consigli {
     private static func pct(_ x: Double) -> String { CalcoliDashboard.percentoTondo(x) }
     private static func pctSegno(_ x: Double) -> String { CalcoliDashboard.percentoTondoConSegno(x) }
 
-    private static let invitoBudget = "Imposta un budget mensile per le categorie principali (Altro › Categorie e budget): vedrai subito quanto ti resta."
+    private static let invitoBudget = String(localized: "Imposta un budget mensile per le categorie principali (Altro › Categorie e budget): vedrai subito quanto ti resta.")
 
     private static func fraseAbbonamenti(in context: ModelContext) -> String? {
         let abb = CalcoliDashboard.abbonamenti(in: context)
@@ -26,8 +26,8 @@ enum Consigli {
         let totale = abb.reduce(0) { $0 + $1.importoAnnuo }
         let nomi = abb.prefix(4).map(\.nome).joined(separator: ", ") + (abb.count > 4 ? "…" : "")
         return abb.count == 1
-            ? "1 abbonamento ti costa \(totale.euroTondo)/anno: \(nomi)."
-            : "\(abb.count) abbonamenti ti costano \(totale.euroTondo)/anno: \(nomi)."
+            ? String(localized: "1 abbonamento ti costa \(totale.euroTondo)/anno: \(nomi).")
+            : String(localized: "\(abb.count) abbonamenti ti costano \(totale.euroTondo)/anno: \(nomi).")
     }
 
     // MARK: - Mese
@@ -50,14 +50,14 @@ enum Consigli {
         var voci: [Voce] = []
 
         if movimenti.isEmpty {
-            voci.append((5, "Nessun movimento in questo mese: collega una banca, importa un estratto conto o scansiona uno scontrino."))
+            voci.append((5, String(localized: "Nessun movimento in questo mese: collega una banca, importa un estratto conto o scansiona uno scontrino.")))
         }
 
         // Categorie oltre budget
         for v in perCategoria {
             guard let c = v.categoria, let budget = c.budgetMensile, budget > 0, v.importo > budget else { continue }
-            var t = "\(c.nome) oltre il budget: \(v.importo.euroTondo) su \(budget.euroTondo) (+\((v.importo - budget).euroTondo))"
-            if corrente && rimanenti > 0 { t += rimanenti == 1 ? ", e manca 1 giorno" : ", e mancano \(rimanenti) giorni" }
+            var t = String(localized: "\(c.nome) oltre il budget: \(v.importo.euroTondo) su \(budget.euroTondo) (+\((v.importo - budget).euroTondo))")
+            if corrente && rimanenti > 0 { t += rimanenti == 1 ? String(localized: ", e manca 1 giorno") : String(localized: ", e mancano \(rimanenti) giorni") }
             voci.append((100, t + "."))
         }
 
@@ -73,7 +73,7 @@ enum Consigli {
                 return (v.nome, v.importo, m, d)
             }
             if let top = aumenti.max(by: { $0.delta < $1.delta }) {
-                voci.append((80, "\(top.nome): \(top.importo.euroTondo) questo mese, \(pctSegno(top.delta)) rispetto alla media degli ultimi mesi (\(top.media.euroTondo))."))
+                voci.append((80, String(localized: "\(top.nome): \(top.importo.euroTondo) questo mese, \(pctSegno(top.delta)) rispetto alla media degli ultimi mesi (\(top.media.euroTondo)).")))
             }
         }
 
@@ -81,21 +81,22 @@ enum Consigli {
         if corrente && giorno >= 5 && rimanenti > 0 && totali.spese > 0 {
             let proiezione = CalcoliConsigli.proiezioneFineMese(spesaFinora: totali.spese, giorno: giorno, giorniNelMese: giorniMese)
             let spesePrec = Contabilita.totali(precedenti[0]).spese
-            var t = "A questo ritmo chiudi il mese con \(proiezione.euroTondo) di spese"
-            if spesePrec > 0 { t += " (\(inizio.aggiungendo(mesi: -1).nomeMese.lowercased()): \(spesePrec.euroTondo))" }
-            voci.append((spesePrec > 0 && proiezione > spesePrec ? 75 : 55, t + "."))
+            let t = spesePrec > 0
+                ? String(localized: "A questo ritmo chiudi il mese con \(proiezione.euroTondo) di spese (\(inizio.aggiungendo(mesi: -1).meseInFrase): \(spesePrec.euroTondo)).")
+                : String(localized: "A questo ritmo chiudi il mese con \(proiezione.euroTondo) di spese.")
+            voci.append((spesePrec > 0 && proiezione > spesePrec ? 75 : 55, t))
         }
 
         // Da confermare
         let daConfermare = movimenti.filter(\.daConfermare).count
         if daConfermare > 0 {
-            voci.append((85, daConfermare == 1 ? "Hai 1 movimento da confermare." : "Hai \(daConfermare) movimenti da confermare."))
+            voci.append((85, daConfermare == 1 ? String(localized: "Hai 1 movimento da confermare.") : String(localized: "Hai \(daConfermare) movimenti da confermare.")))
         }
 
         // Spesa singola più alta
         if let piuAlta = movimenti.filter({ $0.tipo == .spesa && $0.importo < 0 }).min(by: { $0.importo < $1.importo }) {
-            let nome = piuAlta.titolo.isEmpty ? (piuAlta.categoria?.nome ?? "Spesa") : piuAlta.titolo
-            voci.append((35, "La spesa più alta del mese: \(nome), \((-piuAlta.importo).euro) (\(piuAlta.data.giornoMese))."))
+            let nome = piuAlta.titolo.isEmpty ? (piuAlta.categoria?.nome ?? String(localized: "Spesa")) : piuAlta.titolo
+            voci.append((35, String(localized: "La spesa più alta del mese: \(nome), \((-piuAlta.importo).euro) (\(piuAlta.data.giornoMese)).")))
         }
 
         // Abbonamenti
@@ -103,8 +104,8 @@ enum Consigli {
 
         // Prodotti rincarati
         if let r = CalcoliDashboard.rincari(mese: inizio, in: context).first {
-            let quando = r.dataPrima.anno == inizio.anno ? r.dataPrima.nomeMese.lowercased() : r.dataPrima.meseAnno
-            voci.append((60, "\(r.nome) costa \(r.prezzo.euro), a \(quando) \(r.prezzoPrima.euro) (\(pctSegno(r.variazione)))."))
+            let quando = r.dataPrima.anno == inizio.anno ? r.dataPrima.meseInFrase : r.dataPrima.meseAnno
+            voci.append((60, String(localized: "\(r.nome) costa \(r.prezzo.euro), a \(quando) \(r.prezzoPrima.euro) (\(pctSegno(r.variazione))).")))
         }
 
         // Dicembre: quota deducibile residua dei fondi pensione italiani
@@ -114,7 +115,7 @@ enum Consigli {
                 let versato = fondi.reduce(0) { $0 + $1.importo }
                 let residuo = CalcoliConsigli.residuoDeducibile(versato: versato)
                 if residuo > 0 {
-                    voci.append((90, "Nel fondo pensione puoi versare ancora \(residuo.euro) entro il 31 dicembre restando deducibile (quest'anno: \(versato.euro) su 5.164,57 €)."))
+                    voci.append((90, String(localized: "Nel fondo pensione puoi versare ancora \(residuo.euro) entro il 31 dicembre restando deducibile (quest'anno: \(versato.euro) su \(CalcoliConsigli.massimoDeducibileFondoPensione.euro)).")))
                 }
             }
         }
@@ -125,7 +126,7 @@ enum Consigli {
         let interessi = remunerati.reduce(0) { $0 + CalcoliConsigli.interessiMensili(saldo: Contabilita.saldo($1), tassoAnnuo: $1.tassoAnnuo ?? 0) }
         if interessi >= 0.5 {
             let nomi = remunerati.map(\.nome).joined(separator: ", ")
-            voci.append((20, "I conti remunerati (\(nomi)) ti rendono circa \(interessi.euro) di interessi al mese."))
+            voci.append((20, String(localized: "I conti remunerati (\(nomi)) ti rendono circa \(interessi.euro) di interessi al mese.")))
         }
 
         // Tasso di risparmio vs media
@@ -135,9 +136,9 @@ enum Consigli {
                 let media = tassi.reduce(0, +) / Double(tassi.count)
                 let tasso = totali.tassoRisparmio
                 if tasso < media - 0.05 {
-                    voci.append((65, "Questo mese risparmi \(CalcoliConsigli.conArticolo(pct(tasso))) delle entrate, sotto la tua media recente (\(pct(media)))."))
+                    voci.append((65, String(localized: "Questo mese risparmi \(CalcoliConsigli.conArticolo(pct(tasso))) delle entrate, sotto la tua media recente (\(pct(media))).")))
                 } else {
-                    voci.append((25, "Questo mese risparmi \(CalcoliConsigli.conArticolo(pct(tasso))) delle entrate (media recente: \(pct(media)))."))
+                    voci.append((25, String(localized: "Questo mese risparmi \(CalcoliConsigli.conArticolo(pct(tasso))) delle entrate (media recente: \(pct(media))).")))
                 }
             }
         }
@@ -166,7 +167,7 @@ enum Consigli {
         var voci: [Voce] = []
 
         if movimenti.isEmpty {
-            voci.append((5, "Nessun movimento nel \(anno): i consigli arrivano man mano che registri entrate e spese."))
+            voci.append((5, String(localized: "Nessun movimento nel \(String(anno)): i consigli arrivano man mano che registri entrate e spese.")))
         }
 
         // Categoria cresciuta di più rispetto all'anno precedente
@@ -176,15 +177,16 @@ enum Consigli {
             return (v.nome, v.importo, p, d)
         }
         if let top = crescite.max(by: { $0.delta < $1.delta }) {
-            let periodo = corrente ? " (stesso periodo)" : ""
-            voci.append((70, "\(top.nome) \(pctSegno(top.delta)) rispetto al \(anno - 1)\(periodo): \(top.ora.euroTondo) contro \(top.prima.euroTondo). È la categoria cresciuta di più."))
+            voci.append((70, corrente
+                ? String(localized: "\(top.nome) \(pctSegno(top.delta)) rispetto al \(String(anno - 1)) (stesso periodo): \(top.ora.euroTondo) contro \(top.prima.euroTondo). È la categoria cresciuta di più.")
+                : String(localized: "\(top.nome) \(pctSegno(top.delta)) rispetto al \(String(anno - 1)): \(top.ora.euroTondo) contro \(top.prima.euroTondo). È la categoria cresciuta di più.")))
         }
 
         // Tasso di risparmio annuo
         if totali.entrate > 0 {
             var t = totali.risparmio >= 0
-                ? "Nel \(anno) hai risparmiato \(totali.risparmio.euroTondo), \(CalcoliConsigli.conArticolo(pct(totali.tassoRisparmio))) delle entrate"
-                : "Nel \(anno) hai speso \((-totali.risparmio).euroTondo) più di quanto hai incassato"
+                ? String(localized: "Nel \(String(anno)) hai risparmiato \(totali.risparmio.euroTondo), \(CalcoliConsigli.conArticolo(pct(totali.tassoRisparmio))) delle entrate")
+                : String(localized: "Nel \(String(anno)) hai speso \((-totali.risparmio).euroTondo) più di quanto hai incassato")
             if totaliPrec.entrate > 0 { t += " (\(anno - 1): \(pct(totaliPrec.tassoRisparmio)))" }
             voci.append((totali.risparmio < 0 ? 95 : 60, t + "."))
         }
@@ -196,8 +198,8 @@ enum Consigli {
             let nomi = detraibili.map(\.nome).joined(separator: ", ")
             let detrazione = CalcoliConsigli.detrazione730(spese: totaleDetraibile)
             voci.append(detrazione > 0
-                ? (65, "Hai \(totaleDetraibile.euro) di spese detraibili (\(nomi)): mettile nel 730, valgono circa \(detrazione.euro) di detrazione (19% oltre la franchigia di 129,11 €).")
-                : (30, "Hai \(totaleDetraibile.euro) di spese detraibili (\(nomi)): sotto la franchigia di 129,11 € non danno detrazione, ma conserva gli scontrini."))
+                ? (65, String(localized: "Hai \(totaleDetraibile.euro) di spese detraibili (\(nomi)): mettile nel 730, valgono circa \(detrazione.euro) di detrazione (19% oltre la franchigia di \(CalcoliConsigli.franchigia730.euro))."))
+                : (30, String(localized: "Hai \(totaleDetraibile.euro) di spese detraibili (\(nomi)): sotto la franchigia di \(CalcoliConsigli.franchigia730.euro) non danno detrazione, ma conserva gli scontrini.")))
         }
 
         // Fondo pensione: deducibilità
@@ -206,8 +208,8 @@ enum Consigli {
             let versato = fondi.reduce(0) { $0 + $1.importo }
             let nomi = fondi.map(\.nome).joined(separator: ", ")
             let t = versato > CalcoliConsigli.massimoDeducibileFondoPensione
-                ? "Hai versato \(versato.euroTondo) su \(nomi): solo 5.164,57 € sono deducibili, la parte in più no."
-                : "Hai versato \(versato.euroTondo) su \(nomi): fino a 5.164,57 € sono deducibili, quindi ricordati di metterli nel 730."
+                ? String(localized: "Hai versato \(versato.euroTondo) su \(nomi): solo \(CalcoliConsigli.massimoDeducibileFondoPensione.euro) sono deducibili, la parte in più no.")
+                : String(localized: "Hai versato \(versato.euroTondo) su \(nomi): fino a \(CalcoliConsigli.massimoDeducibileFondoPensione.euro) sono deducibili, quindi ricordati di metterli nel 730.")
             voci.append((55, t))
         }
 
@@ -217,12 +219,12 @@ enum Consigli {
                 let mediaMensile = totali.spese / Double(CalcoliDashboard.mesiConDati(movimenti))
                 let liquidita = Contabilita.liquidita(in: context)
                 let mesi = liquidita / mediaMensile
-                let mesiTesto = mesi.formatted(.number.precision(.fractionLength(1)).locale(localeIT))
+                let mesiTesto = mesi.formatted(.number.precision(.fractionLength(1)))
                 let obiettivo = mediaMensile * 6
                 if mesi < 6 {
-                    voci.append((mesi < 3 ? 80 : 50, "La liquidità copre \(mesiTesto) mesi di spese: per un fondo di emergenza di 6 mesi servono \(obiettivo.euroTondo), mancano \((obiettivo - liquidita).euroTondo)."))
+                    voci.append((mesi < 3 ? 80 : 50, String(localized: "La liquidità copre \(mesiTesto) mesi di spese: per un fondo di emergenza di 6 mesi servono \(obiettivo.euroTondo), mancano \((obiettivo - liquidita).euroTondo).")))
                 } else {
-                    voci.append((30, "La liquidità copre \(mesiTesto) mesi di spese: oltre i 6 del fondo di emergenza ci sono \((liquidita - obiettivo).euroTondo) che potresti investire."))
+                    voci.append((30, String(localized: "La liquidità copre \(mesiTesto) mesi di spese: oltre i 6 del fondo di emergenza ci sono \((liquidita - obiettivo).euroTondo) che potresti investire.")))
                 }
             }
 
@@ -232,7 +234,7 @@ enum Consigli {
             let valore = strumenti.reduce(0) { $0 + Portafoglio.valoreEUR($1) }
             if versato > 0 {
                 let guadagno = valore - versato
-                voci.append((40, "I tuoi investimenti valgono \(valore.euroTondo) con \(versato.euroTondo) versati: \(guadagno >= 0 ? "+" : "−")\(abs(guadagno).euroTondo) (\(pctSegno(guadagno / versato)))."))
+                voci.append((40, String(localized: "I tuoi investimenti valgono \(valore.euroTondo) con \(versato.euroTondo) versati: \(guadagno >= 0 ? "+" : "−")\(abs(guadagno).euroTondo) (\(pctSegno(guadagno / versato))).")))
             }
         }
 
@@ -241,9 +243,9 @@ enum Consigli {
             let tua = inflazione.percento
             let istat = UserDefaults.standard.double(forKey: "istat.inflazione")
             if istat != 0 {
-                voci.append((inflazione > istat / 100 ? 50 : 35, "La tua inflazione personale è \(CalcoliConsigli.conArticolo(tua)), contro \(CalcoliConsigli.conArticolo((istat / 100).percento)) ISTAT."))
+                voci.append((inflazione > istat / 100 ? 50 : 35, String(localized: "La tua inflazione personale è \(CalcoliConsigli.conArticolo(tua)), contro \(CalcoliConsigli.conArticolo((istat / 100).percento)) ISTAT.")))
             } else {
-                voci.append((35, "La tua inflazione personale (prezzi dei prodotti riacquistati) è \(CalcoliConsigli.conArticolo(tua)). Imposta il dato ISTAT nelle Impostazioni per confrontarla."))
+                voci.append((35, String(localized: "La tua inflazione personale (prezzi dei prodotti riacquistati) è \(CalcoliConsigli.conArticolo(tua)). Imposta il dato ISTAT nelle Impostazioni per confrontarla.")))
             }
         }
 
@@ -254,7 +256,9 @@ enum Consigli {
         let punti = CalcoliDashboard.patrimonio(mesi: [inizioAnno(anno).aggiungendo(mesi: -1), inizioMese(anno: anno, mese: corrente ? oggi.mese : 12)], in: context)
         if punti.count == 2, punti[0].totale != 0 || punti[1].totale != 0 {
             let delta = punti[1].totale - punti[0].totale
-            var t = "Il patrimonio è \(delta >= 0 ? "cresciuto" : "sceso") di \(abs(delta).euroTondo) da inizio anno"
+            var t = delta >= 0
+                ? String(localized: "Il patrimonio è cresciuto di \(abs(delta).euroTondo) da inizio anno")
+                : String(localized: "Il patrimonio è sceso di \(abs(delta).euroTondo) da inizio anno")
             if punti[0].totale > 0 { t += " (\(pctSegno(delta / punti[0].totale)))" }
             voci.append((delta < 0 ? 75 : 45, t + "."))
         }

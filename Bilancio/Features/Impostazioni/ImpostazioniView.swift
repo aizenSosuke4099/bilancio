@@ -24,7 +24,7 @@ struct ImpostazioniView: View {
                 HStack {
                     Text("Inflazione ISTAT annua")
                     Spacer()
-                    TextField("0", value: $istat, format: .number.precision(.fractionLength(0...2)).locale(localeIT))
+                    TextField("0", value: $istat, format: .number.precision(.fractionLength(0...2)))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 70)
@@ -38,9 +38,9 @@ struct ImpostazioniView: View {
 
             Section {
                 if let s = ScadenzaFirma.dataScadenza {
-                    LabeledContent("Scade il", value: s.formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute().locale(localeIT)))
+                    LabeledContent("Scade il", value: s.formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute()))
                     if let g = ScadenzaFirma.giorniMancanti() {
-                        LabeledContent("Mancano", value: g <= 0 ? "scade oggi" : "\(g) giorn\(g == 1 ? "o" : "i")")
+                        LabeledContent("Mancano", value: g <= 0 ? String(localized: "scade oggi") : (g == 1 ? String(localized: "1 giorno") : String(localized: "\(g) giorni")))
                     }
                 } else {
                     Text("Data non disponibile (simulatore o build senza profilo di provisioning).").foregroundStyle(.secondary)
@@ -94,10 +94,10 @@ struct ImpostazioniView: View {
 
     private var descriviNotifiche: String {
         switch statoNotifiche {
-        case .authorized: "Concesso"
-        case .provisional, .ephemeral: "Provvisorio"
-        case .denied: "Negato"
-        case .notDetermined: "Non ancora chiesto"
+        case .authorized: String(localized: "Concesso")
+        case .provisional, .ephemeral: String(localized: "Provvisorio")
+        case .denied: String(localized: "Negato")
+        case .notDetermined: String(localized: "Non ancora chiesto")
         default: "…"
         }
     }
@@ -109,11 +109,11 @@ struct ImpostazioniView: View {
 
     private func caricaDemo() {
         guard ((try? context.fetchCount(FetchDescriptor<Movimento>())) ?? 0) == 0 else {
-            messaggio = "Ci sono già dei movimenti: cancella prima tutti i dati, altrimenti i dati demo si aggiungerebbero ai tuoi."
+            messaggio = String(localized: "Ci sono già dei movimenti: cancella prima tutti i dati, altrimenti i dati demo si aggiungerebbero ai tuoi.")
             return
         }
         DatiDemo.carica(in: context)
-        messaggio = "Dati demo caricati."
+        messaggio = String(localized: "Dati demo caricati.")
     }
 
     private func cancellaTutto() {
@@ -126,6 +126,6 @@ struct ImpostazioniView: View {
         elimina(Conto.self); elimina(Categoria.self)
         try? context.save()
         DatiIniziali.inserisciSeVuoto(context)
-        messaggio = "Dati cancellati."
+        messaggio = String(localized: "Dati cancellati.")
     }
 }

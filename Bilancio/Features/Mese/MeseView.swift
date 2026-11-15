@@ -78,7 +78,9 @@ struct MeseContenuto: View {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                     RiquadroKPI(titolo: "Entrate", valore: totali.entrate.euroTondo, nota: notaEntrate(movimenti), colore: Tinta.entrate)
                     RiquadroKPI(titolo: "Spese", valore: totali.spese.euroTondo,
-                                nota: confronto.map { "\(CalcoliDashboard.percentoTondoConSegno($0)) vs \(precedente.meseBreve).\(corrente ? " allo stesso giorno" : "")" },
+                                nota: confronto.map { corrente
+                                    ? "\(CalcoliDashboard.percentoTondoConSegno($0)) vs \(precedente.meseBreve). allo stesso giorno"
+                                    : "\(CalcoliDashboard.percentoTondoConSegno($0)) vs \(precedente.meseBreve)." },
                                 colore: Tinta.spese,
                                 coloreNota: (confronto ?? 0) > 0 ? Tinta.spese : Tinta.entrate)
                     RiquadroKPI(titolo: "Risparmio", valore: totali.risparmio.euroTondo,
@@ -155,18 +157,18 @@ struct MeseContenuto: View {
     }
 
     /// Categorie delle entrate, dalla più alta ("stipendio, rimborsi").
-    private func notaEntrate(_ movimenti: [Movimento]) -> String? {
-        let somme = Dictionary(grouping: movimenti.filter { $0.tipo == .entrata }) { $0.categoria?.nome ?? "altro" }
+    private func notaEntrate(_ movimenti: [Movimento]) -> LocalizedStringKey? {
+        let somme = Dictionary(grouping: movimenti.filter { $0.tipo == .entrata }) { $0.categoria?.nome ?? DatiIniziali.localizzato("Altro") }
             .mapValues { $0.reduce(0) { $0 + $1.importo } }
         guard !somme.isEmpty else { return nil }
-        return somme.sorted { $0.value > $1.value }.prefix(2).map { $0.key.lowercased() }.joined(separator: ", ")
+        return "\(somme.sorted { $0.value > $1.value }.prefix(2).map { $0.key.lowercased() }.joined(separator: ", "))"
     }
 
     /// "Broker 300 · Fondo 100"
-    private func notaInvestito(_ movimenti: [Movimento]) -> String? {
+    private func notaInvestito(_ movimenti: [Movimento]) -> LocalizedStringKey? {
         let piattaforme = CalcoliDashboard.investitoPerPiattaforma(movimenti)
         guard !piattaforme.isEmpty else { return nil }
-        return piattaforme.prefix(2).map { "\($0.nome) \(CalcoliDashboard.numeroTondo($0.importo))" }.joined(separator: " · ")
+        return "\(piattaforme.prefix(2).map { "\($0.nome) \(CalcoliDashboard.numeroTondo($0.importo))" }.joined(separator: " · "))"
     }
 }
 
@@ -279,9 +281,9 @@ fileprivate struct SchedaSaldiMese: View {
     let conti: [Conto]
 
     private func nome(_ c: Conto) -> String {
-        if c.tipo == .carta { return "\(c.nome) · da addebitare" }
+        if c.tipo == .carta { return String(localized: "\(c.nome) · da addebitare") }
         if let t = c.tassoAnnuo, t > 0 {
-            return "\(c.nome) (\((t / 100).formatted(.percent.precision(.fractionLength(0...2)).locale(localeIT))))"
+            return "\(c.nome) (\((t / 100).formatted(.percent.precision(.fractionLength(0...2)))))"
         }
         return c.nome
     }

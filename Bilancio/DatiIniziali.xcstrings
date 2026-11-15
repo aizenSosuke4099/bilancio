@@ -1,0 +1,258 @@
+{
+  "sourceLanguage": "it",
+  "version": "1.0",
+  "strings": {
+    "Abbigliamento": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clothing"
+          }
+        }
+      }
+    },
+    "Abbonamenti": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscriptions"
+          }
+        }
+      }
+    },
+    "Altre entrate": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other income"
+          }
+        }
+      }
+    },
+    "Altro": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
+          }
+        }
+      }
+    },
+    "Casa e bollette": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home & utilities"
+          }
+        }
+      }
+    },
+    "Casa e pulizia": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Household & cleaning"
+          }
+        }
+      }
+    },
+    "Contanti": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cash"
+          }
+        }
+      }
+    },
+    "Cura personale": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal care"
+          }
+        }
+      }
+    },
+    "Interessi e dividendi": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interest & dividends"
+          }
+        }
+      }
+    },
+    "Istruzione": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Education"
+          }
+        }
+      }
+    },
+    "Regali": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gifts"
+          }
+        }
+      }
+    },
+    "Rimborsi": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refunds"
+          }
+        }
+      }
+    },
+    "Ristoranti e bar": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurants & bars"
+          }
+        }
+      }
+    },
+    "Salute": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health"
+          }
+        }
+      }
+    },
+    "Spesa alimentare": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groceries"
+          }
+        }
+      }
+    },
+    "Stipendio": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salary"
+          }
+        }
+      }
+    },
+    "Svago e cultura": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leisure & culture"
+          }
+        }
+      }
+    },
+    "Tasse e commissioni": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taxes & fees"
+          }
+        }
+      }
+    },
+    "Tecnologia": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technology"
+          }
+        }
+      }
+    },
+    "Trasporti": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transport"
+          }
+        }
+      }
+    },
+    "Viaggi": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Travel"
+          }
+        }
+      }
+    }
+  }
+}

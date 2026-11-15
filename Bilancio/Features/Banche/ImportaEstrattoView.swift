@@ -86,24 +86,24 @@ struct ImportaEstrattoView: View {
         nomeFile = url.deletingPathExtension().lastPathComponent
         righe = []
         profilo = nil
-        fase = .lettura("Leggo \(url.lastPathComponent)…")
+        fase = .lettura(String(localized: "Leggo \(url.lastPathComponent)…"))
         let tipo = UTType(filenameExtension: url.pathExtension.lowercased())
         if tipo?.conforms(to: .pdf) == true {
-            guard let pdf = PDFDocument(url: url) else { return fallito("Non riesco ad aprire il PDF.") }
+            guard let pdf = PDFDocument(url: url) else { return fallito(String(localized: "Non riesco ad aprire il PDF.")) }
             let pagine = (0..<pdf.pageCount).compactMap { pdf.page(at: $0)?.string }
             let movimenti = await LettorePDFEstratto.leggi(pagine: pagine) { fase = .lettura($0) }
-            guard !movimenti.isEmpty else { return fallito("Nel PDF non ho trovato movimenti. Se è una scansione, prova con il CSV della banca.") }
+            guard !movimenti.isEmpty else { return fallito(String(localized: "Nel PDF non ho trovato movimenti. Se è una scansione, prova con il CSV della banca.")) }
             mostraAnteprima(movimenti)
             return
         }
-        guard let dati = try? Data(contentsOf: url) else { return fallito("Non riesco a leggere il file.") }
+        guard let dati = try? Data(contentsOf: url) else { return fallito(String(localized: "Non riesco a leggere il file.")) }
         let testo = ParserEstratto.decodifica(dati)
         let separatore = ParserEstratto.separatore(di: testo)
         let tabella = ParserEstratto.righeCSV(testo, separatore: separatore)
         guard (tabella.map(\.count).max() ?? 0) >= 3 else {
             // testo senza colonne: stesse regole del PDF
             let movimenti = ParserEstratto.righeDaTesto(testo)
-            guard !movimenti.isEmpty else { return fallito("Non ho riconosciuto il formato del file.") }
+            guard !movimenti.isEmpty else { return fallito(String(localized: "Non ho riconosciuto il formato del file.")) }
             return mostraAnteprima(movimenti)
         }
         righe = tabella
@@ -167,7 +167,7 @@ struct ImportaEstrattoView: View {
             }
             Section("Formato") {
                 Picker("Data", selection: $mappatura.formatoData) {
-                    ForEach(ParserEstratto.formatiData, id: \.self) { Text($0.replacingOccurrences(of: "yyyy", with: "aaaa").replacingOccurrences(of: "yy", with: "aa").replacingOccurrences(of: "dd", with: "gg")).tag($0) }
+                    ForEach(ParserEstratto.formatiData, id: \.self) { Text($0.replacingOccurrences(of: "yyyy", with: String(localized: "aaaa", comment: "anno a 4 cifre nel formato data")).replacingOccurrences(of: "yy", with: String(localized: "aa", comment: "anno a 2 cifre nel formato data")).replacingOccurrences(of: "dd", with: String(localized: "gg", comment: "giorno nel formato data"))).tag($0) }
                 }
                 Toggle("Virgola per i decimali (1.234,56)", isOn: $mappatura.virgolaDecimale)
                 Toggle("Inverti il segno (carte: positivo = spesa)", isOn: $mappatura.invertiSegno)
@@ -192,10 +192,10 @@ struct ImportaEstrattoView: View {
         }
     }
 
-    private func pickerColonna(_ titolo: String, selezione: Binding<Int>) -> some View {
+    private func pickerColonna(_ titolo: LocalizedStringKey, selezione: Binding<Int>) -> some View {
         Picker(titolo, selection: selezione) {
             ForEach(intestazione.indices, id: \.self) { i in
-                Text(intestazione[i].isEmpty ? "Colonna \(i + 1)" : intestazione[i]).tag(i)
+                Text(intestazione[i].isEmpty ? String(localized: "Colonna \(i + 1)") : intestazione[i]).tag(i)
             }
         }
     }
@@ -358,8 +358,8 @@ fileprivate struct RigaVoceImport: View {
 
     private var dettagli: String {
         var parti = [voce.riga.data.giornoMese, voce.suggerimento.categoria?.nome ?? voce.suggerimento.tipo.etichetta]
-        if voce.suggerimento.prelievoContanti { parti.append("→ Contanti") }
-        if voce.duplicato { parti.append("già presente") }
+        if voce.suggerimento.prelievoContanti { parti.append("→ \(DatiIniziali.localizzato("Contanti"))") }
+        if voce.duplicato { parti.append(String(localized: "già presente")) }
         return parti.joined(separator: " · ")
     }
 }
@@ -376,7 +376,7 @@ fileprivate enum LettorePDFEstratto {
         }
         var risultato: [ParserEstratto.Riga] = []
         for (i, pagina) in pagine.enumerated() {
-            avanzamento("Leggo la pagina \(i + 1) di \(pagine.count)…")
+            avanzamento(String(localized: "Leggo la pagina \(i + 1) di \(pagine.count)…"))
             for pezzo in pezzi(pagina) {
                 if let letti = try? await chiediAlModello(pezzo), !letti.isEmpty {
                     risultato += letti

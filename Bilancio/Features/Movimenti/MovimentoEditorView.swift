@@ -25,7 +25,7 @@ struct MovimentoEditorView: View {
     init(movimento: Movimento? = nil) {
         self.movimento = movimento
         _tipo = State(initialValue: movimento?.tipo ?? .spesa)
-        _importoTesto = State(initialValue: movimento.map { abs($0.importo).formatted(.number.precision(.fractionLength(2)).locale(localeIT)) } ?? "")
+        _importoTesto = State(initialValue: movimento.map { abs($0.importo).formatted(.number.precision(.fractionLength(2))) } ?? "")
         _positivo = State(initialValue: (movimento?.importo ?? -1) > 0)
         _data = State(initialValue: movimento?.data ?? Date())
         _titolo = State(initialValue: movimento?.titolo ?? "")
@@ -47,9 +47,9 @@ struct MovimentoEditorView: View {
 
     private var etichettaSegno: String? {
         switch tipo {
-        case .spesa: "Rimborso (entra denaro)"
-        case .giroconto: "In entrata su questo conto"
-        case .investimento: "Disinvestimento (rientro sul conto)"
+        case .spesa: String(localized: "Rimborso (entra denaro)")
+        case .giroconto: String(localized: "In entrata su questo conto")
+        case .investimento: String(localized: "Disinvestimento (rientro sul conto)")
         case .entrata: nil
         }
     }

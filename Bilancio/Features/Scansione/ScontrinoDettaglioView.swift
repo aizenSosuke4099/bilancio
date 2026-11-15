@@ -43,10 +43,10 @@ struct ScontrinoDettaglioView: View {
 
                 Scheda {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(scontrino.negozio.isEmpty ? "Scontrino" : scontrino.negozio).font(.title2.bold())
+                        Text(scontrino.negozio.isEmpty ? String(localized: "Scontrino") : scontrino.negozio).font(.title2.bold())
                         if !scontrino.indirizzo.isEmpty { Text(scontrino.indirizzo).font(.subheadline).foregroundStyle(.secondary) }
                         HStack {
-                            Label(scontrino.data.formatted(.dateTime.day().month(.wide).year().hour().minute().locale(localeIT)), systemImage: "calendar")
+                            Label(scontrino.data.formatted(.dateTime.day().month(.wide).year().hour().minute()), systemImage: "calendar")
                                 .font(.subheadline)
                             Spacer()
                             Text(scontrino.totale.euro).font(.title3.bold().monospacedDigit())
@@ -85,7 +85,7 @@ struct ScontrinoDettaglioView: View {
                         RigaMovimento(movimento: m)
                         HStack(spacing: 6) {
                             Image(systemName: m.conto?.tipo.icona ?? "questionmark.circle")
-                            Text(m.conto?.nome ?? "Conto non indicato")
+                            Text(m.conto?.nome ?? String(localized: "Conto non indicato"))
                             Text("·")
                             Text(m.origine == .scontrino ? "creato dallo scontrino" : "collegato a \(m.origine.etichetta.lowercased())")
                             Spacer()
@@ -101,7 +101,7 @@ struct ScontrinoDettaglioView: View {
             .padding(.bottom, 24)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(scontrino.negozio.isEmpty ? "Scontrino" : scontrino.negozio)
+        .navigationTitle(scontrino.negozio.isEmpty ? String(localized: "Scontrino") : scontrino.negozio)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -150,7 +150,7 @@ struct ScontrinoDettaglioView: View {
         var parti: [String] = []
         if r.prodotto != nil { parti.append(r.testo) }
         if r.quantita != 1 { parti.append("\(r.quantita.quote) × \(r.prezzoUnitario.euro)") }
-        parti.append(r.categoria?.nome ?? "Senza categoria")
+        parti.append(r.categoria?.nome ?? String(localized: "Senza categoria"))
         return parti.joined(separator: " · ")
     }
 
@@ -201,9 +201,9 @@ private struct ModificaScontrinoScansioneView: View {
         Form {
             Section("Scontrino") {
                 TextField("Negozio", text: $negozio)
-                DatePicker("Data", selection: $data, displayedComponents: [.date, .hourAndMinute]).environment(\.locale, localeIT)
+                DatePicker("Data", selection: $data, displayedComponents: [.date, .hourAndMinute])
                 LabeledContent("Totale") {
-                    TextField("0,00", value: $totale, format: .number.precision(.fractionLength(2)).locale(localeIT))
+                    TextField("0,00", value: $totale, format: .number.precision(.fractionLength(2)))
                         .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                 }
                 let somma = righe.reduce(0) { $0 + $1.totale }.centesimi

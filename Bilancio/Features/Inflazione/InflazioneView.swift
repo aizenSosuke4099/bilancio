@@ -47,7 +47,7 @@ private struct VoceInflazione: Identifiable {
 }
 
 private func etichettaUnita(_ p: Prodotto) -> String {
-    p.unita == "pz" ? (p.formato == nil ? "a confezione" : "€/pz") : "€/\(p.unita)"
+    p.unita == "pz" ? (p.formato == nil ? String(localized: "a confezione") : String(localized: "€/pz")) : "€/\(p.unita)"
 }
 
 private func coloreVariazione(_ v: Double) -> Color {
@@ -183,11 +183,11 @@ struct InflazioneView: View {
         return CalcoloInflazione.indiceMensile(voci.map(\.serie), mesi: mesi)
     }
 
-    private func notaISTAT(_ personale: Double?) -> String {
+    private func notaISTAT(_ personale: Double?) -> LocalizedStringKey {
         guard istat > 0 else { return "imposta il dato in Impostazioni" }
         guard let personale else { return "inflazione ufficiale annua" }
         let punti = personale * 100 - istat
-        return "tu: \(punti >= 0 ? "+" : "")\(punti.formatted(.number.precision(.fractionLength(1)).locale(localeIT))) punti"
+        return "tu: \(punti >= 0 ? "+" : "")\(punti.formatted(.number.precision(.fractionLength(1)))) punti"
     }
 }
 
@@ -260,7 +260,7 @@ private struct DettaglioProdottoInflazione: View {
 
                 if let s = sgrammatura {
                     Label {
-                        Text("Sgrammatura: dal \(s.data.breve) la confezione è passata da \(quantita(s.prima, s.unita)) a \(quantita(s.dopo, s.unita)) a un prezzo simile. Al \(s.unita == "kg" ? "kg" : "litro") costa il \(s.aumentoEffettivo.percento) in più.")
+                        Text("Sgrammatura: dal \(s.data.breve) la confezione è passata da \(quantita(s.prima, s.unita)) a \(quantita(s.dopo, s.unita)) a un prezzo simile. Al \(s.unita == "kg" ? "kg" : String(localized: "litro", comment: "unità nella frase «Al litro costa il … in più»")) costa il \(s.aumentoEffettivo.percento) in più.")
                             .font(.subheadline)
                     } icon: {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -270,7 +270,7 @@ private struct DettaglioProdottoInflazione: View {
                     .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
-                Scheda(titolo: "Prezzo nel tempo", etichetta: unita) {
+                Scheda(titolo: "Prezzo nel tempo", etichetta: "\(unita)") {
                     Chart(voce.acquisti) { a in
                         LineMark(x: .value("Data", a.data), y: .value("Prezzo", a.prezzo))
                             .foregroundStyle(.gray.opacity(0.6))
@@ -327,7 +327,7 @@ private struct DettaglioProdottoInflazione: View {
     }
 
     private func quantita(_ q: Double, _ unita: String) -> String {
-        q < 1 ? "\((q * 1000).formatted(.number.precision(.fractionLength(0)).locale(localeIT))) \(unita == "kg" ? "g" : "ml")"
+        q < 1 ? "\((q * 1000).formatted(.number.precision(.fractionLength(0)))) \(unita == "kg" ? "g" : "ml")"
               : "\(q.quote) \(unita)"
     }
 }
@@ -344,7 +344,7 @@ private struct GestioneProdottiInflazione: View {
             NavigationLink { ModificaProdottoInflazione(prodotto: p) } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(p.nome)
-                    Text("\(p.righe.count) righe · \(p.unita)\(p.formato.map { " · formato \($0.quote)" } ?? "")")
+                    Text(p.formato.map { String(localized: "\(p.righe.count) righe · \(p.unita) · formato \($0.quote)") } ?? String(localized: "\(p.righe.count) righe · \(p.unita)"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
@@ -374,7 +374,7 @@ private struct ModificaProdottoInflazione: View {
                     Text("Chilogrammi").tag("kg")
                     Text("Litri").tag("l")
                 }
-                TextField("Formato (es. 0,5 per 500 g)", value: $prodotto.formato, format: .number.locale(localeIT))
+                TextField("Formato (es. 0,5 per 500 g)", value: $prodotto.formato, format: .number)
                     .keyboardType(.decimalPad)
                 Picker("Categoria", selection: $prodotto.categoria) {
                     Text("Nessuna").tag(Categoria?.none)
