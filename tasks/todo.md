@@ -132,3 +132,7 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - Banche (15/11 sera): prime banche collegate, sincronizzazione OK. Errore 429 ASPSP_RATE_LIMIT_EXCEEDED risolto con le
   intestazioni PSU (`EnableBanking.intestazioniPSU`) quando l'utente usa l'app; in background niente intestazioni (limite ~4/giorno).
   Carte e banche non presenti su Enable Banking (anche svizzere, in CHF): import dell'estratto conto.
+- Login banche (15/11 notte): Enable Banking accetta solo redirect https. Redirect predefinito = pagina ponte GitHub Pages
+  https://aizensosuke4099.github.io/bilancio/callback/ (docs/callback/index.html) → bilancio://callback; il login gira in
+  ASWebAuthenticationSession (passa alle app delle banche che confermano il login nella loro app). Il ritorno da fuori vale solo con lo state giusto.
+  Su Enable Banking i redirect registrati sono https://localhost/bilancio (vecchio, pagina dentro l'app) e la pagina ponte.

@@ -16,8 +16,12 @@ struct RootView: View {
         // "Apri con Bilancio" da File/Mail/banca: CSV o PDF dell'estratto conto
         .onOpenURL { url in
             // bilancio://callback?code=…: ritorno dal login della banca (lo raccoglie CollegaBancaView)
-            if url.scheme == "bilancio" { NotificationCenter.default.post(name: .ritornoBanca, object: url) }
-            else { fileDaImportare = FileDaImportare(url: url) }
+            if url.scheme == "bilancio" {
+                // qualunque app può aprire bilancio://: si passa solo il callback, che poi viene controllato con lo state
+                if url.host() == "callback" { NotificationCenter.default.post(name: .ritornoBanca, object: url) }
+            } else {
+                fileDaImportare = FileDaImportare(url: url)
+            }
         }
         .sheet(item: $fileDaImportare) { f in
             NavigationStack { ImportaEstrattoView(fileURL: f.url) }

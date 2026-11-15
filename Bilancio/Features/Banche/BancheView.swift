@@ -368,7 +368,7 @@ fileprivate struct CollegaBancaView: View {
             } else {
                 // login di sistema: si chiude da solo quando la pagina ponte apre bilancio://callback
                 let schema = r?.scheme.map { $0.lowercased() }.flatMap { $0 == "http" || $0 == "https" ? nil : $0 } ?? "bilancio"
-                let ritorno = try await autenticazione.avvia(url: url, schema: schema)
+                let ritorno = try await autenticazione.avvia(url: url, schema: schema, stato: stato)
                 await completa(ritorno)
             }
         } catch let e as ASWebAuthenticationSessionError where e.code == .canceledLogin {
@@ -382,11 +382,16 @@ fileprivate struct CollegaBancaView: View {
     private func completa(_ ritorno: URL) async {
         let parametri = URLComponents(url: ritorno, resolvingAgainstBaseURL: false)?.queryItems ?? []
         func valore(_ nome: String) -> String? { parametri.first { $0.name == nome }?.value }
+        // lo state prima di tutto: un link con un altro state non viene dalla nostra richiesta
+        guard valore("state") == stato else {
+            errore = String(localized: "Risposta della banca non valida.")
+            return
+        }
         if let e = valore("error") {
             errore = String(localized: "La banca ha rifiutato il consenso: \(valore("error_description") ?? e)")
             return
         }
-        guard valore("state") == stato, let codice = valore("code"), let banca = bancaScelta else {
+        guard let codice = valore("code"), let banca = bancaScelta else {
             errore = String(localized: "Risposta della banca non valida.")
             return
         }
@@ -514,10 +519,12 @@ fileprivate struct AbbinamentoContiView: View {
 fileprivate final class AutenticazioneWeb: NSObject, ASWebAuthenticationPresentationContextProviding {
     private var sessione: ASWebAuthenticationSession?
     private var continuazione: CheckedContinuation<URL, Error>?
+    private var statoAtteso: String?
 
-    func avvia(url: URL, schema: String) async throws -> URL {
+    func avvia(url: URL, schema: String, stato: String) async throws -> URL {
         try await withCheckedThrowingContinuation { c in
             continuazione = c
+            statoAtteso = stato
             let s = ASWebAuthenticationSession(url: url, callback: .customScheme(schema)) { [weak self] ritorno, errore in
                 self?.chiudi(ritorno, errore)
             }
@@ -528,7 +535,10 @@ fileprivate final class AutenticazioneWeb: NSObject, ASWebAuthenticationPresenta
     }
 
     /// Il ritorno è arrivato da fuori (app della banca → Safari → pagina ponte → bilancio://callback): vale quello.
+    /// Vale solo se porta lo state del login in corso: un'altra app non può chiuderlo o fingere un errore.
     func ritornoDaFuori(_ url: URL) {
+        let stato = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "state" }?.value
+        guard continuazione != nil, stato != nil, stato == statoAtteso else { return }
         let s = sessione
         chiudi(url, nil)
         s?.cancel()
