@@ -74,6 +74,18 @@
         }
       }
     },
+    "Commissioni bancarie": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bank fees"
+          }
+        }
+      }
+    },
     "Contanti": {
       "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
       "extractionState": "manual",
@@ -214,6 +226,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Taxes & fees"
+          }
+        }
+      }
+    },
+    "Tasse e imposte": {
+      "comment": "Nome di categoria o conto creato al primo avvio (DatiIniziali.swift)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taxes"
           }
         }
       }

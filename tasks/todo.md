@@ -117,3 +117,15 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - Traduzioni: `xcodebuild` non aggiorna il catalogo; le chiavi nuove vanno aggiunte a mano (le chiavi estratte sono nei
   `*.stringsdata` in build/dd/…/Objects-normal/arm64: confrontarle col catalogo). Il file va riscritto con
   `json.dumps(…, ensure_ascii=False, indent=2, separators=(',', ': '))` + "\n" mantenendo l'ordine delle chiavi.
+
+### Commissioni, costo del cambio, inflazione con ISTAT automatico (15/11 sera)
+- Categoria "Commissioni bancarie" (bonifici, canoni, fee, spread, interessi passivi); "Tasse e commissioni" diventa "Tasse e imposte".
+  Per chi ha già l'app: `DatiIniziali.aggiornaCategorie` (una volta sola, flag `categorie.commissioniBancarie`).
+- CSV con colonna commissione (Revolut "Fee"): la commissione diventa un movimento a parte "Commissione: …".
+- Giroconto tra valute diverse: la differenza (spread + costi nel tasso) diventa una spesa senza conto in Commissioni bancarie,
+  `idEsterno = "costo-cambio:<id del movimento in valuta>"`. `Contabilita.applicaCambiStorici` (all'apertura) ricalcola i movimenti
+  in valuta col cambio BCE del loro giorno (`cambioStorico`) e aggiorna il costo.
+- Inflazione: indice NIC ISTAT scaricato da solo (`ISTAT`, SDMX 167_744, al massimo una volta al giorno, ~15 s; dati in UserDefaults).
+  Pagina: tua inflazione vs ISTAT, paniere su tutto lo storico con la curva ISTAT, prodotto → grafico con punto selezionabile e
+  acquisti che aprono lo scontrino. Il campo ISTAT manuale nelle Impostazioni è stato tolto.
+- Cartella di Bilancio visibile in File (`LSSupportsOpeningDocumentsInPlace` = true). Non usare PlistBuddy sull'Info.plist: toglie i commenti.

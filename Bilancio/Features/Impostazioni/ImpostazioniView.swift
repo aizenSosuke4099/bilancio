@@ -5,7 +5,6 @@ import UserNotifications
 
 struct ImpostazioniView: View {
     @AppStorage("bloccoFaceID") private var bloccoFaceID = true
-    @AppStorage("istat.inflazione") private var istat: Double = 0
     @Environment(\.modelContext) private var context
     @Environment(\.openURL) private var openURL
     @State private var statoNotifiche: UNAuthorizationStatus?
@@ -18,22 +17,6 @@ struct ImpostazioniView: View {
                 Toggle("Blocco con Face ID", isOn: $bloccoFaceID)
             } footer: {
                 Text("All'apertura e al ritorno in app serve Face ID (o il codice dell'iPhone). Nel multitasking il contenuto resta sfocato.")
-            }
-
-            Section {
-                HStack {
-                    Text("Inflazione ISTAT annua")
-                    Spacer()
-                    TextField("0", value: $istat, format: .number.precision(.fractionLength(0...2)))
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 70)
-                    Text("%").foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Inflazione")
-            } footer: {
-                Text("L'ultimo dato ufficiale (indice NIC, variazione sull'anno prima), per confrontarlo con la tua inflazione personale.")
             }
 
             Section {

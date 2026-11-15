@@ -15,6 +15,8 @@ private struct AcquistoInflazione: Identifiable {
     let prezzo: Double
     let quantita: Double
     let totale: Double
+    /// Lo scontrino da cui viene il prezzo: la prova.
+    let scontrino: Scontrino
 }
 
 private struct VoceInflazione: Identifiable {
@@ -40,7 +42,7 @@ private struct VoceInflazione: Identifiable {
             return AcquistoInflazione(
                 id: r.persistentModelID, data: s.data, negozio: s.negozio, testo: r.testo, prezzoConfezione: confezione,
                 prezzo: CalcoloInflazione.prezzoConfrontabile(prezzoConfezione: confezione, testo: r.testo, unita: prodotto.unita, formato: prodotto.formato),
-                quantita: r.quantita, totale: r.totale)
+                quantita: r.quantita, totale: r.totale, scontrino: s)
         }
         .sorted { $0.data < $1.data }
     }
@@ -59,7 +61,8 @@ private func coloreVariazione(_ v: Double) -> Color {
 struct InflazioneView: View {
     @Query(sort: \Prodotto.nome) private var prodotti: [Prodotto]
     @Query(sort: \Categoria.ordine) private var categorie: [Categoria]
-    @AppStorage("istat.inflazione") private var istat: Double = 0
+    /// Indice NIC dell'ISTAT, scaricato da solo (vedi `ISTAT`).
+    @State private var nic = ISTAT.indice
     @State private var ricerca = ""
     @State private var categoriaScelta: PersistentIdentifier?
     @State private var negozioScelto: String?
@@ -71,33 +74,48 @@ struct InflazioneView: View {
         let tutte = prodotti.map { VoceInflazione($0) }.filter { $0.dateDiverse >= 2 }
         let voci = filtra(tutte)
         let inflazione = CalcoloInflazione.inflazionePersonale(voci.map(\.serie), oggi: Date())
+        let indice = indiceMensile(voci)
+        let paniere = indice.count > 1 ? indice.last!.indice / 100 - 1 : nil
+        let ufficiale = ISTAT.ultimaVariazioneAnnua(nic)
+        let curvaISTAT = ISTAT.serie(mesi: indice.map(\.mese), valori: nic)
+        let tu = String(localized: "Tu"), istat = "ISTAT"
 
         ScrollView {
             VStack(spacing: 12) {
                 HStack(spacing: 10) {
-                    RiquadroKPI(titolo: "Inflazione personale",
+                    RiquadroKPI(titolo: "La tua inflazione",
                                 valore: inflazione.map { $0.valore.percentoConSegno } ?? "—",
-                                nota: inflazione.map { "su \($0.prodotti) prodotti, ultimi 12 mesi" } ?? "servono più acquisti ripetuti",
+                                nota: inflazione.map { "ultimi 12 mesi, su \($0.prodotti) prodotti" } ?? "servono più acquisti ripetuti",
                                 colore: inflazione.map { coloreVariazione($0.valore) } ?? .secondary)
                     RiquadroKPI(titolo: "ISTAT",
-                                valore: istat > 0 ? (istat / 100).percento : "—",
-                                nota: notaISTAT(inflazione?.valore),
-                                coloreNota: inflazione.map { istat > 0 && $0.valore > istat / 100 ? Tinta.spese : .secondary } ?? .secondary)
+                                valore: ufficiale.map(\.valore.percentoConSegno) ?? "—",
+                                nota: notaISTAT(ufficiale, personale: inflazione?.valore),
+                                coloreNota: (inflazione?.valore ?? 0) > (ufficiale?.valore ?? .infinity) ? Tinta.spese : .secondary)
                 }
 
-                let indice = indiceMensile(voci)
                 if indice.count > 1 {
-                    Scheda(titolo: "Indice dei tuoi prezzi", etichetta: "base 100") {
+                    Scheda(titolo: "Il tuo paniere nel tempo", etichetta: LocalizedStringKey(etichettaPaniere(paniere, istat: curvaISTAT))) {
                         Chart {
                             RuleMark(y: .value("Base", 100)).foregroundStyle(.secondary.opacity(0.5)).lineStyle(StrokeStyle(dash: [4, 4]))
                             ForEach(indice, id: \.mese) { p in
-                                LineMark(x: .value("Mese", p.mese, unit: .month), y: .value("Indice", p.indice))
+                                LineMark(x: .value("Mese", p.mese, unit: .month), y: .value("Indice", p.indice), series: .value("Serie", tu))
+                                    .foregroundStyle(by: .value("Serie", tu))
                                     .interpolationMethod(.monotone)
-                                PointMark(x: .value("Mese", p.mese, unit: .month), y: .value("Indice", p.indice)).symbolSize(18)
+                                PointMark(x: .value("Mese", p.mese, unit: .month), y: .value("Indice", p.indice))
+                                    .foregroundStyle(by: .value("Serie", tu)).symbolSize(18)
+                            }
+                            ForEach(curvaISTAT, id: \.mese) { p in
+                                LineMark(x: .value("Mese", p.mese, unit: .month), y: .value("Indice", p.indice), series: .value("Serie", istat))
+                                    .foregroundStyle(by: .value("Serie", istat))
+                                    .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 3]))
                             }
                         }
+                        .chartForegroundStyleScale([tu: Color.accentColor, istat: Color.gray])
                         .chartYScale(domain: .automatic(includesZero: false))
-                        .frame(height: 170)
+                        .chartLegend(position: .bottom)
+                        .frame(height: 190)
+                        Text("Base 100 = \(indice[0].mese.formatted(.dateTime.month(.wide).year())). La linea ISTAT è l'indice NIC, che esce con circa un mese di ritardo.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                 }
 
@@ -136,7 +154,10 @@ struct InflazioneView: View {
         .task {
             #if DEBUG
             CalcoloInflazione.autoverifica()
+            ISTAT.autoverifica()
             #endif
+            await ISTAT.aggiornaSeServe()
+            nic = ISTAT.indice
         }
     }
 
@@ -174,21 +195,30 @@ struct InflazioneView: View {
         return perSpesa ? filtrate.sorted { $0.spesaAnno > $1.spesaAnno } : filtrate.sorted { $0.variazione > $1.variazione }
     }
 
+    private func notaISTAT(_ ufficiale: (mese: Date, valore: Double)?, personale: Double?) -> LocalizedStringKey {
+        guard let ufficiale else { return "si scarica da solo (serve internet)" }
+        guard let personale else { return "NIC, \(ufficiale.mese.formatted(.dateTime.month(.abbreviated).year())) sull'anno prima" }
+        let punti = (personale - ufficiale.valore) * 100
+        return "tu: \(punti >= 0 ? "+" : "−")\(abs(punti).formatted(.number.precision(.fractionLength(1)))) punti"
+    }
+
+    /// "tu +4,2% · ISTAT +2,1%" dall'inizio del grafico.
+    private func etichettaPaniere(_ paniere: Double?, istat: [(mese: Date, indice: Double)]) -> String {
+        var parti: [String] = []
+        if let paniere { parti.append(String(localized: "tu \(paniere.percentoConSegno)")) }
+        if let ultimo = istat.last, istat.count > 1 { parti.append("ISTAT \((ultimo.indice / 100 - 1).percentoConSegno)") }
+        return parti.joined(separator: " · ")
+    }
+
     private func indiceMensile(_ voci: [VoceInflazione]) -> [(mese: Date, indice: Double)] {
         guard let primo = voci.compactMap({ $0.acquisti.first?.data }).min() else { return [] }
         let corrente = Date().inizioMese
-        var mese = max(primo.inizioMese, corrente.aggiungendo(mesi: -23))
+        var mese = primo.inizioMese   // tutto lo storico: il paniere parte dal primo scontrino
         var mesi: [Date] = []
         while mese <= corrente { mesi.append(mese); mese = mese.aggiungendo(mesi: 1) }
         return CalcoloInflazione.indiceMensile(voci.map(\.serie), mesi: mesi)
     }
 
-    private func notaISTAT(_ personale: Double?) -> LocalizedStringKey {
-        guard istat > 0 else { return "imposta il dato in Impostazioni" }
-        guard let personale else { return "inflazione ufficiale annua" }
-        let punti = personale * 100 - istat
-        return "tu: \(punti >= 0 ? "+" : "")\(punti.formatted(.number.precision(.fractionLength(1)))) punti"
-    }
 }
 
 /// Stessa voce, limitata agli acquisti di un negozio.
@@ -237,6 +267,7 @@ private struct RigaProdottoInflazione: View {
 
 private struct DettaglioProdottoInflazione: View {
     let prodotto: Prodotto
+    @State private var dataScelta: Date?
 
     var body: some View {
         let voce = VoceInflazione(prodotto)
@@ -270,16 +301,39 @@ private struct DettaglioProdottoInflazione: View {
                     .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
+                let scelto = dataScelta.flatMap { d in voce.acquisti.min { abs($0.data.timeIntervalSince(d)) < abs($1.data.timeIntervalSince(d)) } }
                 Scheda(titolo: "Prezzo nel tempo", etichetta: "\(unita)") {
-                    Chart(voce.acquisti) { a in
-                        LineMark(x: .value("Data", a.data), y: .value("Prezzo", a.prezzo))
-                            .foregroundStyle(.gray.opacity(0.6))
-                        PointMark(x: .value("Data", a.data), y: .value("Prezzo", a.prezzo))
-                            .foregroundStyle(by: .value("Negozio", a.negozio))
+                    Chart {
+                        ForEach(voce.acquisti) { a in
+                            LineMark(x: .value("Data", a.data), y: .value("Prezzo", a.prezzo))
+                                .foregroundStyle(.gray.opacity(0.6))
+                            PointMark(x: .value("Data", a.data), y: .value("Prezzo", a.prezzo))
+                                .foregroundStyle(by: .value("Negozio", a.negozio))
+                        }
+                        if let scelto {
+                            RuleMark(x: .value("Data", scelto.data)).foregroundStyle(.secondary.opacity(0.4))
+                        }
                     }
+                    .chartXSelection(value: $dataScelta)
                     .chartYScale(domain: .automatic(includesZero: false))
                     .chartLegend(position: .bottom)
                     .frame(height: 200)
+                    // tocca un punto: compare l'acquisto, con lo scontrino come prova
+                    if let scelto {
+                        NavigationLink { ScontrinoDettaglioView(scontrino: scelto.scontrino) } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(scelto.prezzo.euro) \(unita) · \(scelto.prezzoConfezione.euro) a confezione").font(.subheadline.bold())
+                                    Text("\(scelto.data.breve) · \(scelto.negozio)").font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Label("Scontrino", systemImage: "doc.text.magnifyingglass").font(.caption.bold())
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Text("Tocca un punto del grafico per vedere l'acquisto e il suo scontrino.").font(.caption).foregroundStyle(.secondary)
+                    }
                 }
 
                 if perNegozio.count > 1, let migliore = perNegozio.first, let peggiore = perNegozio.last {
@@ -298,21 +352,26 @@ private struct DettaglioProdottoInflazione: View {
                     }
                 }
 
-                Scheda(titolo: "Acquisti", etichetta: "\(voce.acquisti.count)") {
-                    Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
-                        GridRow {
-                            Text("Data"); Text("Negozio"); Text("Prezzo").gridColumnAlignment(.trailing); Text("Q.tà").gridColumnAlignment(.trailing)
-                        }
-                        .font(.caption).foregroundStyle(.secondary)
-                        ForEach(voce.acquisti.reversed()) { a in
-                            GridRow {
-                                Text(a.data.breve)
-                                Text(a.negozio).lineLimit(1)
-                                Text(a.prezzoConfezione.euro).monospacedDigit()
-                                Text(a.quantita.quote).monospacedDigit()
+                Scheda(titolo: "Acquisti", etichetta: "tocca per lo scontrino") {
+                    ForEach(voce.acquisti.reversed()) { a in
+                        NavigationLink { ScontrinoDettaglioView(scontrino: a.scontrino) } label: {
+                            HStack(spacing: 8) {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(a.data.breve)
+                                    Text(a.negozio).foregroundStyle(.secondary).lineLimit(1)
+                                }
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 1) {
+                                    Text(a.prezzoConfezione.euro).monospacedDigit()
+                                    Text("× \(a.quantita.quote)").foregroundStyle(.secondary).monospacedDigit()
+                                }
+                                Image(systemName: "doc.text.magnifyingglass").foregroundStyle(.tint)
                             }
                             .font(.caption)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+                        if a.id != voce.acquisti.first?.id { Divider() }
                     }
                 }
             }

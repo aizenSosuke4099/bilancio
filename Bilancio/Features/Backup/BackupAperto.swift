@@ -48,7 +48,7 @@ enum BackupAperto {
     }
     struct MovimentoJ: Codable {
         var id: String, data: Date, importo: Double
-        var importoOriginale: Double?, valutaOriginale: String?
+        var importoOriginale: Double?, valutaOriginale: String?, cambioStorico: Bool?
         var tipo, titolo, nota, descrizioneOriginale, stato, origine: String
         var idEsterno: String?, creatoIl: Date
         var conto: String?, categoria: String?, ricorrenza: String?
@@ -139,7 +139,7 @@ enum BackupAperto {
         a.categorie = categorie.map { CategoriaJ(id: id($0), nome: $0.nome, icona: $0.icona, coloreHex: $0.coloreHex, tipo: $0.tipoRaw,
                                                  budgetMensile: $0.budgetMensile, detraibile: $0.detraibile, ordine: $0.ordine) }
         a.movimenti = movimenti.map { MovimentoJ(id: id($0), data: $0.data, importo: $0.importo, importoOriginale: $0.importoOriginale,
-                                                 valutaOriginale: $0.valutaOriginale, tipo: $0.tipoRaw, titolo: $0.titolo, nota: $0.nota,
+                                                 valutaOriginale: $0.valutaOriginale, cambioStorico: $0.cambioStorico, tipo: $0.tipoRaw, titolo: $0.titolo, nota: $0.nota,
                                                  descrizioneOriginale: $0.descrizioneOriginale, stato: $0.statoRaw, origine: $0.origineRaw,
                                                  idEsterno: $0.idEsterno, creatoIl: $0.creatoIl,
                                                  conto: rif($0.conto), categoria: rif($0.categoria), ricorrenza: rif($0.ricorrenza)) }
@@ -248,7 +248,7 @@ enum BackupAperto {
         }
         for j in a.movimenti {
             let m = Movimento(data: j.data, importo: j.importo, tipo: .spesa, titolo: j.titolo, origine: .manuale)
-            m.importoOriginale = j.importoOriginale; m.valutaOriginale = j.valutaOriginale
+            m.importoOriginale = j.importoOriginale; m.valutaOriginale = j.valutaOriginale; m.cambioStorico = j.cambioStorico ?? false
             m.tipoRaw = j.tipo; m.nota = j.nota; m.descrizioneOriginale = j.descrizioneOriginale
             m.statoRaw = j.stato; m.origineRaw = j.origine; m.idEsterno = j.idEsterno; m.creatoIl = j.creatoIl
             ctx.insert(m)
@@ -334,6 +334,7 @@ enum BackupAperto {
     - Date in ISO 8601 (es. 2026-11-15T17:30:00Z).
     - "importo" dei movimenti è in euro, con segno: negativo = uscita, positivo = entrata.
       Per i conti in valuta estera "importoOriginale" e "valutaOriginale" danno l'importo nella valuta del conto.
+      "cambioStorico": true se l'importo in euro usa il cambio BCE del giorno del movimento.
     - "tipo" di un movimento: spesa, entrata, giroconto (spostamento tra conti propri, non conta nei totali), investimento.
     - "stato": daConfermare o confermato.
     - Non sono incluse la chiave privata e l'Application ID di Enable Banking: si reimportano dall'app.

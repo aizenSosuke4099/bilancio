@@ -53,6 +53,16 @@
         }
       }
     },
+    "%@ %@ · %@ a confezione": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ · %3$@ per pack"
+          }
+        }
+      }
+    },
     "%@ %@ · %lld righe": {
       "localizations": {
         "it": {
@@ -1370,6 +1380,16 @@
         }
       }
     },
+    "Base 100 = %@. La linea ISTAT è l'indice NIC, che esce con circa un mese di ritardo.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base 100 = %@. The ISTAT line is the NIC index (Italian CPI), published about a month late."
+          }
+        }
+      }
+    },
     "Bilancio scade %@: collega l'iPhone al Mac e lancia installa.sh. I tuoi dati restano.": {
       "comment": "quando = «domani alle 20:00» ecc.",
       "localizations": {
@@ -2339,6 +2359,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copy the Application ID below (it's also the name of the .pem file) and import the key file."
+          }
+        }
+      }
+    },
+    "Costo del cambio %@ → %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exchange cost %1$@ → %2$@"
           }
         }
       }
@@ -3548,6 +3578,16 @@
         }
       }
     },
+    "Il tuo paniere nel tempo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your basket over time"
+          }
+        }
+      }
+    },
     "Il valore totale della posizione come lo vedi nell'app della piattaforma.": {
       "localizations": {
         "en": {
@@ -3784,16 +3824,6 @@
         }
       }
     },
-    "Indice dei tuoi prezzi": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your price index"
-          }
-        }
-      }
-    },
     "Inflazione": {
       "localizations": {
         "en": {
@@ -3804,32 +3834,12 @@
         }
       }
     },
-    "Inflazione ISTAT annua": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annual ISTAT inflation"
-          }
-        }
-      }
-    },
     "Inflazione dei prodotti": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Product inflation"
-          }
-        }
-      }
-    },
-    "Inflazione personale": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Personal inflation"
           }
         }
       }
@@ -3984,16 +3994,6 @@
         }
       }
     },
-    "L'ultimo dato ufficiale (indice NIC, variazione sull'anno prima), per confrontarlo con la tua inflazione personale.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The latest official figure (NIC index, change on the previous year), to compare with your personal inflation."
-          }
-        }
-      }
-    },
     "La banca ha rifiutato il consenso: %@": {
       "localizations": {
         "en": {
@@ -4118,12 +4118,22 @@
         }
       }
     },
-    "La tua inflazione personale (prezzi dei prodotti riacquistati) è %@. Imposta il dato ISTAT nelle Impostazioni per confrontarla.": {
+    "La tua inflazione": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your personal inflation (prices of products bought again) is %@. Set the ISTAT figure in Settings to compare it."
+            "value": "Your inflation"
+          }
+        }
+      }
+    },
+    "La tua inflazione personale (prezzi dei prodotti riacquistati) è %@. Il dettaglio prodotto per prodotto è in Altro › Inflazione.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your personal inflation (prices of products you buy again) is %@. The product-by-product detail is in More › Inflation."
           }
         }
       }
@@ -4568,6 +4578,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mozzarella 125 g"
+          }
+        }
+      }
+    },
+    "NIC, %@ sull'anno prima": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIC, %@ year on year"
           }
         }
       }
@@ -5913,16 +5933,6 @@
         }
       }
     },
-    "Q.tà": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Qty"
-          }
-        }
-      }
-    },
     "Qualcosa non va": {
       "localizations": {
         "en": {
@@ -7235,6 +7245,16 @@
         }
       }
     },
+    "Tocca un punto del grafico per vedere l'acquisto e il suo scontrino.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a point on the chart to see the purchase and its receipt."
+          }
+        }
+      }
+    },
     "Tocca una riga per correggerla. Scorri a sinistra per eliminarla.": {
       "localizations": {
         "en": {
@@ -7363,6 +7383,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quarterly"
+          }
+        }
+      }
+    },
+    "Tu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You"
           }
         }
       }
@@ -7916,16 +7946,6 @@
         }
       }
     },
-    "base 100": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "base 100"
-          }
-        }
-      }
-    },
     "beta": {
       "localizations": {
         "en": {
@@ -8157,32 +8177,12 @@
         }
       }
     },
-    "imposta il dato in Impostazioni": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "set it in Settings"
-          }
-        }
-      }
-    },
     "in pausa": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "paused"
-          }
-        }
-      }
-    },
-    "inflazione ufficiale annua": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "official annual inflation"
           }
         }
       }
@@ -8348,12 +8348,12 @@
         }
       }
     },
-    "su %lld prodotti, ultimi 12 mesi": {
+    "si scarica da solo (serve internet)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "on %lld products, last 12 months"
+            "value": "downloaded automatically (needs internet)"
           }
         }
       }
@@ -8378,12 +8378,32 @@
         }
       }
     },
+    "tocca per lo scontrino": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tap for the receipt"
+          }
+        }
+      }
+    },
     "tocca un mese": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "tap a month"
+          }
+        }
+      }
+    },
+    "tu %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "you %@"
           }
         }
       }
@@ -8400,6 +8420,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "you: %@%@ points"
+          }
+        }
+      }
+    },
+    "ultimi 12 mesi, su %lld prodotti": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "last 12 months, %lld products"
           }
         }
       }
@@ -8456,6 +8486,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "It's been over a month since the last backup saved off the iPhone. Open More › Backup and save it to iCloud Drive."
+          }
+        }
+      }
+    },
+    "× %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "× %@"
           }
         }
       }

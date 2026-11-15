@@ -169,6 +169,8 @@ enum ParserEstratto {
         guard righe.count > m.righeDaSaltare else { return [] }
         let intestazione = righe[m.righeDaSaltare].map(normalizza)
         let colStato = intestazione.firstIndex { $0 == "state" || $0 == "stato" }
+        // commissione in una colonna a parte (Revolut "Fee"): non è dentro l'importo, diventa un movimento suo
+        let colCommissione = intestazione.firstIndex { $0 == "fee" || $0 == "commissione" || $0 == "commissioni" }
         let statiEsclusi: Set<String> = ["reverted", "declined", "failed", "pending", "annullato", "annullata", "rifiutato", "in sospeso"]
         var risultato: [Riga] = []
         for r in righe.dropFirst(m.righeDaSaltare + 1) {
@@ -186,9 +188,12 @@ enum ParserEstratto {
                 importo = abs(avere ?? 0) - abs(dare ?? 0)
             }
             if m.invertiSegno { importo = -importo }
-            guard importo != 0 else { continue }
             let descrizione = cella(m.colDescrizione).replacingOccurrences(of: "\n", with: " ")
-            risultato.append(Riga(data: data, descrizione: descrizione, importo: importo.centesimi))
+            if importo != 0 { risultato.append(Riga(data: data, descrizione: descrizione, importo: importo.centesimi)) }
+            if let c = colCommissione, let f = leggiImporto(cella(c), virgolaDecimale: m.virgolaDecimale), f != 0 {
+                // "Commissione: …" la manda in Commissioni bancarie (parole chiave del Classificatore)
+                risultato.append(Riga(data: data, descrizione: "Commissione: " + descrizione, importo: -abs(f).centesimi))
+            }
         }
         return risultato
     }
@@ -289,7 +294,7 @@ enum ParserEstratto {
 
 // MARK: - Self-check
 // Dalla radice del progetto:
-//   swiftc -D VERIFICA_ESTRATTO -parse-as-library Bilancio/Core/Formato.swift Bilancio/Modello/*.swift Bilancio/Core/Classificatore.swift Bilancio/Features/Banche/ParserEstratto.swift -o /tmp/verifica_estratto && /tmp/verifica_estratto
+//   swiftc -D VERIFICA_ESTRATTO -parse-as-library Bilancio/Core/Formato.swift Bilancio/Core/DatiIniziali.swift Bilancio/Modello/*.swift Bilancio/Core/Classificatore.swift Bilancio/Features/Banche/ParserEstratto.swift -o /tmp/verifica_estratto && /tmp/verifica_estratto
 #if VERIFICA_ESTRATTO
 @main enum VerificaEstratto {
     static func giorno(_ a: Int, _ m: Int, _ g: Int) -> Date {
@@ -304,6 +309,7 @@ enum ParserEstratto {
         TOPUP,Current,2026-10-01 08:00:00,2026-10-01 08:00:05,Top-Up by *1234,300.00,0.00,EUR,COMPLETED,1300.00
         CARD_PAYMENT,Current,2026-10-05 19:01:00,,Netflix,-12.99,0.00,EUR,REVERTED,
         ATM,Current,2026-10-06 10:00:00,2026-10-06 10:00:01,"Cash withdrawal at ATM, Milano","-1,000.00",0.00,EUR,COMPLETED,254.80
+        EXCHANGE,Current,2026-10-07 09:00:00,2026-10-07 09:00:01,Exchanged to CHF,-200.00,1.50,EUR,COMPLETED,53.30
         """
         let sR = ParserEstratto.separatore(di: revolut)
         precondition(sR == ",", "separatore Revolut: \(sR)")
@@ -312,7 +318,8 @@ enum ParserEstratto {
         precondition(mR.righeDaSaltare == 0 && mR.colData == 3 && mR.colDescrizione == 4 && mR.colImporto == 5, "\(mR)")
         precondition(mR.formatoData == "yyyy-MM-dd" && !mR.virgolaDecimale, "\(mR)")
         let movR = ParserEstratto.applica(mR, righe: righeR)
-        precondition(movR.count == 3, "Revolut: \(movR)")
+        precondition(movR.count == 5, "Revolut: \(movR)")
+        precondition(movR[3].importo == -200 && movR[4].importo == -1.5 && movR[4].descrizione == "Commissione: Exchanged to CHF", "\(movR)")
         precondition(movR[0] == .init(data: giorno(2026, 10, 3), descrizione: "Esselunga", importo: -45.20))
         precondition(movR[1].importo == 300)
         precondition(movR[2].importo == -1000 && movR[2].descrizione == "Cash withdrawal at ATM, Milano")

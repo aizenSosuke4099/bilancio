@@ -43,7 +43,6 @@ enum DatiDemo {
         for (nome, budget) in [("Spesa alimentare", 350.0), ("Ristoranti e bar", 150), ("Trasporti", 100), ("Svago e cultura", 60), ("Abbigliamento", 80)] {
             categoria(nome)?.budgetMensile = budget
         }
-        if UserDefaults.standard.double(forKey: "istat.inflazione") == 0 { UserDefaults.standard.set(1.6, forKey: "istat.inflazione") }
         if UserDefaults.standard.double(forKey: "cambio.CHF") == 0 { Portafoglio.salvaCambio("CHF", 1.07) }
 
         // MARK: Movimenti
@@ -229,7 +228,7 @@ enum DatiDemo {
                 let inverno = [11, 12, 1, 2, 3].contains(numeroMese)
                 mov(d, -(inverno ? caso.tra(70, 110) : caso.tra(18, 30)), .spesa, "Eni Plenitude", "Conto corrente", "Casa e bollette", descrizione: "SDD ENI PLENITUDE GAS")
             }
-            if let d = il(28) { mov(d, -2.5, .spesa, String(localized: "Canone conto"), "Conto corrente", "Tasse e commissioni", descrizione: "CANONE MENSILE CONTO") }
+            if let d = il(28) { mov(d, -2.5, .spesa, String(localized: "Canone conto"), "Conto corrente", "Commissioni bancarie", descrizione: "CANONE MENSILE CONTO") }
 
             // giroconti, prelievi, interessi
             if let d = il(1, ora: 7) { giroconto(d, 300, da: "Conto corrente", a: "Conto digitale", String(localized: "Ricarica conto digitale")) }

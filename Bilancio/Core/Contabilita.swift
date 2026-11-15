@@ -85,8 +85,7 @@ enum Contabilita {
     /// Saldo in euro (i conti in valuta estera al cambio di oggi).
     static func saldo(_ conto: Conto) -> Double { saldoInValuta(conto) * Portafoglio.cambio(conto.valuta) }
 
-    /// Importo nella valuta di un conto → euro, all'ultimo cambio noto.
-    // ponytail: cambio del giorno di registrazione, non della data del movimento; per lo storico servirebbe il fixing per data
+    /// Importo nella valuta di un conto → euro, all'ultimo cambio noto (poi `applicaCambiStorici` usa quello del giorno).
     static func inEuro(_ importo: Double, valuta: String) -> Double {
         valuta == "EUR" ? importo : (importo * Portafoglio.cambio(valuta)).centesimi
     }
@@ -96,6 +95,25 @@ enum Contabilita {
         m.importo = inEuro(v, valuta: valuta)
         m.importoOriginale = valuta == "EUR" ? nil : v
         m.valutaOriginale = valuta == "EUR" ? nil : valuta
+        m.cambioStorico = false
+    }
+
+    /// Ricalcola in euro i movimenti in valuta estera col cambio BCE del loro giorno (serve internet; chi resta
+    /// senza cambio riprova alla prossima apertura). Ricalcola anche il costo dei cambi tra conti propri.
+    static func applicaCambiStorici(in context: ModelContext) async {
+        let daFare = ((try? context.fetch(FetchDescriptor<Movimento>(predicate: #Predicate { $0.valutaOriginale != nil && !$0.cambioStorico }))) ?? [])
+        var cache: [String: Double] = [:]
+        for m in daFare {
+            guard let v = m.valutaOriginale, let originale = m.importoOriginale else { continue }
+            let chiave = "\(v)-\(calendario.startOfDay(for: m.data).timeIntervalSince1970)"
+            var cambio = cache[chiave]
+            if cambio == nil { cambio = await Prezzi.cambio(v, al: m.data); cache[chiave] = cambio }
+            guard let cambio else { continue }
+            m.importo = (originale * cambio).centesimi
+            m.cambioStorico = true
+            if m.tipo == .giroconto { Abbinamento.segnaGiroconto(m, in: context) }
+        }
+        if !daFare.isEmpty { try? context.save() }
     }
 
     /// Somma dei saldi dei conti attivi (le carte di credito pesano in negativo).

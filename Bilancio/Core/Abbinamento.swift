@@ -53,6 +53,34 @@ enum Abbinamento {
             x.tipo = .giroconto
             x.categoria = nil
         }
+        if m.valutaOriginale != c.valutaOriginale { registraCostoCambio(m, c, in: context) }
+    }
+
+    /// Costo di un cambio tra conti propri in valute diverse (spread e commissioni nascoste nel tasso): quanto è uscito
+    /// meno quanto è entrato, in euro al cambio BCE. Diventa una spesa in "Commissioni bancarie" senza conto, perché
+    /// i saldi dei conti lo contengono già. Se il cambio è stato migliore di quello BCE non si registra nulla.
+    static func registraCostoCambio(_ a: Movimento, _ b: Movimento, in context: ModelContext) {
+        guard let estero = [a, b].first(where: { $0.valutaOriginale != nil }), let id = estero.idEsterno else { return }
+        let chiave: String? = "costo-cambio:" + id
+        var d = FetchDescriptor<Movimento>(predicate: #Predicate { $0.idEsterno == chiave })
+        d.fetchLimit = 1
+        let esistente = (try? context.fetch(d))?.first
+        let costo = (-(a.importo + b.importo)).centesimi
+        guard costo >= 0.01 else {
+            if let esistente { context.delete(esistente) }
+            return
+        }
+        let (uscita, entrata) = a.importo < 0 ? (a, b) : (b, a)
+        let m = esistente ?? {
+            let titolo = String(localized: "Costo del cambio \(uscita.valutaOriginale ?? "EUR") → \(entrata.valutaOriginale ?? "EUR")")
+            let nuovo = Movimento(data: max(a.data, b.data), importo: 0, tipo: .spesa, titolo: titolo, origine: estero.origine)
+            nuovo.idEsterno = chiave
+            context.insert(nuovo)
+            return nuovo
+        }()
+        m.importo = -costo
+        m.data = max(a.data, b.data)
+        if m.categoria == nil { m.categoria = Classificatore.categoria(nome: "Commissioni bancarie", in: context) }
     }
 
     #if DEBUG
@@ -93,6 +121,7 @@ enum Abbinamento {
         let cambioPrima = UserDefaults.standard.double(forKey: "cambio.CHF")
         defer { UserDefaults.standard.set(cambioPrima, forKey: "cambio.CHF") }
         Portafoglio.salvaCambio("CHF", 1.07)
+        DatiIniziali.inserisciSeVuoto(ctx)   // serve la categoria Commissioni bancarie
         let svizzero = Conto(nome: "Svizzero", tipo: .corrente)
         svizzero.valuta = "CHF"
         ctx.insert(svizzero)
@@ -100,8 +129,14 @@ enum Abbinamento {
         assert(chf.importo == -107 && chf.importoOriginale == -100 && chf.valutaOriginale == "CHF")
         assert(Contabilita.saldoInValuta(svizzero) == -100 && abs(Contabilita.saldo(svizzero) + 107) < 0.001)
         let versoCH = arriva(-1_000, "BONIFICO SEPA SWISS", corrente, giorni: 10)
-        let inCH = arriva(950, "ACCREDITO", svizzero, giorni: 11)   // 950 CHF = 1016,50 € al nostro cambio: dentro il 3%
+        let inCH = arriva(920, "ACCREDITO", svizzero, giorni: 11)   // 920 CHF = 984,40 € al nostro cambio: dentro il 3%
         assert(versoCH.tipo == .giroconto && inCH.tipo == .giroconto)
+        // il cambio è costato 1000 − 984,40 = 15,60 €: spesa senza conto in Commissioni bancarie
+        let idCosto: String? = "costo-cambio:" + (inCH.idEsterno ?? "")
+        let costo = try! ctx.fetch(FetchDescriptor<Movimento>(predicate: #Predicate { $0.idEsterno == idCosto })).first
+        assert(costo?.importo == -15.6 && costo?.tipo == .spesa && costo?.conto == nil, "costo del cambio: \(String(describing: costo?.importo))")
+        assert(DatiIniziali.corrisponde(costo?.categoria?.nome, a: "Commissioni bancarie"))
+        assert(abs(Contabilita.saldo(corrente) - Contabilita.saldoInValuta(corrente)) < 0.001)   // il costo non tocca i saldi
         print("Abbinamento.autoverifica OK")
     }
     #endif

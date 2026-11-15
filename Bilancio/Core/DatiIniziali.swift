@@ -32,7 +32,8 @@ enum DatiIniziali {
         ("Tecnologia", "desktopcomputer", "#64748B", false),
         ("Regali", "gift", "#F43F5E", false),
         ("Istruzione", "book", "#6366F1", true),
-        ("Tasse e commissioni", "building.columns", "#78716C", false),
+        ("Tasse e imposte", "building.columns", "#78716C", false),
+        ("Commissioni bancarie", "creditcard", "#A16207", false),
         ("Altro", "ellipsis.circle", "#9CA3AF", false),
     ]
 
@@ -61,6 +62,26 @@ enum DatiIniziali {
             context.insert(Conto(nome: localizzato(c.0), tipo: c.1, istituto: c.2, coloreHex: c.3, ordine: i))
         }
         try? context.save()
+    }
+
+    /// Categorie aggiunte dopo la prima versione, per chi ha già l'app (una volta sola: se l'utente
+    /// poi le elimina o le rinomina, restano come le ha lasciate).
+    static func aggiornaCategorie(_ context: ModelContext) {
+        let chiave = "categorie.commissioniBancarie"
+        guard !UserDefaults.standard.bool(forKey: chiave) else { return }
+        let tutte = (try? context.fetch(FetchDescriptor<Categoria>())) ?? []
+        guard !tutte.isEmpty else { return }   // database vuoto: ci pensa inserisciSeVuoto
+        if !tutte.contains(where: { corrisponde($0.nome, a: "Commissioni bancarie") }) {
+            let ordine = tutte.first { corrisponde($0.nome, a: "Tasse e commissioni") }?.ordine ?? (tutte.map(\.ordine).max() ?? 0)
+            context.insert(Categoria(nome: localizzato("Commissioni bancarie"), icona: "creditcard", coloreHex: "#A16207", tipo: .spesa, ordine: ordine))
+        }
+        // le commissioni hanno ora la loro categoria: "Tasse e commissioni" diventa "Tasse e imposte"
+        if let vecchia = tutte.first(where: { corrisponde($0.nome, a: "Tasse e commissioni") }),
+           !tutte.contains(where: { corrisponde($0.nome, a: "Tasse e imposte") }) {
+            vecchia.nome = localizzato("Tasse e imposte")
+        }
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: chiave)
     }
 
     /// Il conto Contanti (esiste sempre).

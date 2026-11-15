@@ -238,14 +238,13 @@ enum Consigli {
             }
         }
 
-        // Inflazione personale vs ISTAT
+        // Inflazione personale (prezzi dei prodotti che ricompri) contro l'ISTAT, scaricato da solo
         if let inflazione = CalcoliDashboard.inflazionePersonale(anno: anno, in: context) {
             let tua = inflazione.percento
-            let istat = UserDefaults.standard.double(forKey: "istat.inflazione")
-            if istat != 0 {
-                voci.append((inflazione > istat / 100 ? 50 : 35, String(localized: "La tua inflazione personale è \(CalcoliConsigli.conArticolo(tua)), contro \(CalcoliConsigli.conArticolo((istat / 100).percento)) ISTAT.")))
+            if let istat = ISTAT.ultimaVariazioneAnnua() {
+                voci.append((inflazione > istat.valore ? 50 : 35, String(localized: "La tua inflazione personale è \(CalcoliConsigli.conArticolo(tua)), contro \(CalcoliConsigli.conArticolo(istat.valore.percento)) ISTAT.")))
             } else {
-                voci.append((35, String(localized: "La tua inflazione personale (prezzi dei prodotti riacquistati) è \(CalcoliConsigli.conArticolo(tua)). Imposta il dato ISTAT nelle Impostazioni per confrontarla.")))
+                voci.append((35, String(localized: "La tua inflazione personale (prezzi dei prodotti riacquistati) è \(CalcoliConsigli.conArticolo(tua)). Il dettaglio prodotto per prodotto è in Altro › Inflazione.")))
             }
         }
 

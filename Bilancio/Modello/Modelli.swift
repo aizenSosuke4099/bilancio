@@ -63,6 +63,8 @@ import SwiftData
     /// Conti in valuta estera (es. CHF): importo nella valuta del conto. `importo` resta sempre in euro.
     var importoOriginale: Double?
     var valutaOriginale: String?
+    /// true quando `importo` è stato ricalcolato col cambio BCE del giorno del movimento (non quello di oggi).
+    var cambioStorico: Bool = false
 
     var conto: Conto?
     var categoria: Categoria?

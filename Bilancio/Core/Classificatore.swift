@@ -138,6 +138,10 @@ enum Classificatore {
         // investimenti
         (["fondo pensione", "previdenza complementare", "scalable capital", "directa", "degiro", "etoro", "xtb", "interactive brokers",
           "moneyfarm", "finpension", "amundi"], .investimento, nil),
+        // costi della banca: bonifici, cambi valuta, canoni, interessi passivi (prima di "interessi" delle entrate)
+        (["commissione", "commissioni", "comm", "canone", "spese bonifico", "costo bonifico", "spese tenuta conto", "tenuta conto",
+          "spese invio", "fee", "fees", "exchange fee", "fx fee", "spread", "maggiorazione cambio", "costo cambio", "costo del cambio",
+          "interessi passivi", "interessi debitori"], .spesa, "Commissioni bancarie"),
         // entrate
         (["stipendio", "emolumenti", "salary", "retribuzione", "cedolino", "accredito stipendio"], .entrata, "Stipendio"),
         (["interessi", "interest", "dividendo", "cedola"], .entrata, "Interessi e dividendi"),
@@ -156,7 +160,7 @@ enum Classificatore {
         (["mediaworld", "unieuro", "euronics", "apple store", "trony", "expert"], .spesa, "Tecnologia"),
         (["ikea", "leroy merlin", "brico", "obi", "maisons du monde", "tiger", "action", "acqua e sapone", "tigota"], .spesa, "Casa e pulizia"),
         (["sephora", "douglas", "kiko", "parrucchiere", "barbiere", "estetista"], .spesa, "Cura personale"),
-        (["commissione", "commissioni", "canone", "imposta di bollo", "bollo", "f24", "agenzia entrate", "tasse", "pagopa"], .spesa, "Tasse e commissioni"),
+        (["imposta di bollo", "bollo", "f24", "agenzia entrate", "tasse", "imposta", "imposte", "pagopa"], .spesa, "Tasse e imposte"),
         (["amazon", "amzn", "ebay", "aliexpress", "temu", "shein", "paypal"], .spesa, "Altro"),
     ]
 }

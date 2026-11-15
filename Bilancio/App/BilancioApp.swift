@@ -9,7 +9,7 @@ struct BilancioApp: App {
         // I task in background vanno registrati prima che l'app finisca di avviarsi.
         Sincronizzazione.registraBackground()
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-verifica") { Abbinamento.autoverifica(); BackupAperto.autoverifica() }
+        if ProcessInfo.processInfo.arguments.contains("-verifica") { Abbinamento.autoverifica(); BackupAperto.autoverifica(); CalcoloInflazione.autoverifica(); ISTAT.autoverifica(); print("Inflazione e ISTAT: autoverifica OK") }
         // prova del giro completo: backup del database vero → ripristino in sospeso, applicato al prossimo avvio
         if ProcessInfo.processInfo.arguments.contains("-provaRipristino") {
             let ctx = Persistenza.container.mainContext
@@ -47,12 +47,15 @@ enum Avvio {
 
         let ctx = Persistenza.container.mainContext
         DatiIniziali.inserisciSeVuoto(ctx)
+        DatiIniziali.aggiornaCategorie(ctx)
         GeneratoreRicorrenze.genera(in: ctx)
         if !ProcessInfo.processInfo.arguments.contains("-demo") { ScadenzaFirma.programmaNotifiche() }  // in demo il permesso coprirebbe lo schermo
         await Prezzi.aggiornaSeVecchi(in: ctx)
         await PAC.generaSeServe(in: ctx)
         await Sincronizzazione.sincronizzaSeServe(in: ctx)
+        await Contabilita.applicaCambiStorici(in: ctx)
         Contabilita.aggiornaSnapshot(in: ctx)
         try? ctx.save()
+        await ISTAT.aggiornaSeServe()   // per ultimo: il servizio ISTAT è lento
     }
 }
