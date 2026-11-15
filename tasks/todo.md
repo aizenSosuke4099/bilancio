@@ -131,6 +131,7 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - Cartella di Bilancio visibile in File (`LSSupportsOpeningDocumentsInPlace` = true). Non usare PlistBuddy sull'Info.plist: toglie i commenti.
 - Banche (15/11 sera): prime banche collegate, sincronizzazione OK. Errore 429 ASPSP_RATE_LIMIT_EXCEEDED risolto con le
   intestazioni PSU (`EnableBanking.intestazioniPSU`) quando l'utente usa l'app; in background niente intestazioni (limite ~4/giorno).
+  Collegata con la pagina ponte anche una banca che conferma il login nella sua app (consenso max 90 giorni, banca "beta").
   Carte e banche non presenti su Enable Banking (anche svizzere, in CHF): import dell'estratto conto.
 - Login banche (15/11 notte): Enable Banking accetta solo redirect https. Redirect predefinito = pagina ponte GitHub Pages
   https://aizensosuke4099.github.io/bilancio/callback/ (docs/callback/index.html) → bilancio://callback; il login gira in
