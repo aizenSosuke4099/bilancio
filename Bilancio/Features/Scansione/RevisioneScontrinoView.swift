@@ -62,18 +62,22 @@ struct ScontrinoInRevisione: Identifiable {
                 if let n = appresa.nomeProdotto, !n.isEmpty { x.nomeProdotto = n }
                 x.imparata = true
             }
-            if let p = prodotti[x.nomeProdotto.lowercased(with: localeIT)] {
+            if let p = prodotti[SalvataggioScansione.chiaveProdotto(x.nomeProdotto)] {
                 x.unita = p.unita
                 x.formato = p.formato ?? x.formato
             }
             return x
         }
 
+        // totale non letto: si propone la somma delle righe, ma va detto (se una riga è sfuggita, la somma è sbagliata)
+        let note = [b.totale == nil && !b.righe.isEmpty ? String(localized: "Non ho letto il totale: ho messo la somma delle righe. Controllalo sullo scontrino.") : nil,
+                    esito.nota].compactMap { $0 }
+
         return ScontrinoInRevisione(
             immagini: immagini, testoOCR: testoOCR, negozioLetto: b.negozio,
             negozio: imparato ? (suggerimento?.titolo ?? b.negozio) : b.negozio, negozioImparato: imparato,
             partitaIva: b.partitaIva, indirizzo: b.indirizzo, data: b.data ?? Date(), totale: totale,
-            righe: righe, pagatoInContanti: b.pagatoInContanti, conAI: esito.conAI, nota: esito.nota
+            righe: righe, pagatoInContanti: b.pagatoInContanti, conAI: esito.conAI, nota: note.isEmpty ? nil : note.joined(separator: "\n")
         )
     }
 }
@@ -82,10 +86,13 @@ struct ScontrinoInRevisione: Identifiable {
 
 enum SalvataggioScansione {
 
-    /// Prodotti esistenti per nome in minuscolo.
+    /// Lo stesso prodotto si riconosce dal nome senza badare a maiuscole, accenti e punteggiatura.
+    static func chiaveProdotto(_ nome: String) -> String { Classificatore.normalizza(nome) }
+
+    /// Prodotti esistenti per `chiaveProdotto`.
     static func indiceProdotti(in context: ModelContext) -> [String: Prodotto] {
         let tutti = (try? context.fetch(FetchDescriptor<Prodotto>())) ?? []
-        return Dictionary(tutti.map { ($0.nome.lowercased(with: localeIT), $0) }, uniquingKeysWith: { a, _ in a })
+        return Dictionary(tutti.map { (chiaveProdotto($0.nome), $0) }, uniquingKeysWith: { a, _ in a })
     }
 
     /// Sostituisce le righe dello scontrino con quelle confermate e le impara tutte.
@@ -100,7 +107,7 @@ enum SalvataggioScansione {
             riga.categoria = r.categoria
             let nome = r.nomeProdotto.trimmingCharacters(in: .whitespaces)
             if !nome.isEmpty {
-                let chiave = nome.lowercased(with: localeIT)
+                let chiave = chiaveProdotto(nome)
                 let p = prodotti[chiave] ?? {
                     let nuovo = Prodotto(nome: nome, unita: r.unita, formato: r.formato)
                     context.insert(nuovo)

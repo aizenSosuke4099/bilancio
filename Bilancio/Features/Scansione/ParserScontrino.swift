@@ -73,22 +73,29 @@ enum ParserScontrino {
     static func analizza(_ testo: String) -> BozzaScontrino {
         var b = BozzaScontrino()
         let righe = testo.components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
+            // "–", "—" e "−" (meno tipografico) valgono come il segno meno
+            .map { $0.replacingOccurrences(of: "[\u{2013}\u{2014}\u{2212}]", with: "-", options: .regularExpression).trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
 
         b.negozio = negozio(in: righe)
         b.indirizzo = indirizzo(in: righe, dopo: b.negozio)
         b.partitaIva = partitaIva(in: righe)
-        b.data = righe.compactMap { leggiData($0) }.first
-        b.pagatoInContanti = pagamentoContanti(in: righe)
+        // la data più recente non futura: non quella di emissione della tessera né la scadenza di una promozione
+        b.data = righe.compactMap { leggiData($0) }.filter { $0 <= Date().addingTimeInterval(86_400) }.max()
+        // il pagamento sta dopo il totale: prima, "CARTA IGIENICA" non è una carta
+        let dopoIlTotale = Array(righe.drop(while: { !isTotale(normalizza($0)) }))
+        b.pagatoInContanti = pagamentoContanti(in: dopoIlTotale.isEmpty ? righe : dopoIlTotale)
 
         var voci: [BozzaScontrino.Riga] = []
         var quantitaInSospeso: (q: Double, pu: Double, unita: String)?
         var descrizioneInSospeso: String?
         var vistoPrezzo = false
+        // scontrini con la colonna "Qta" (fast food): il numero in testa alla riga è la quantità
+        var quantitaInTesta = false
 
         for (i, riga) in righe.enumerated() {
             let norm = normalizza(riga)
+            if !vistoPrezzo, contiene(norm, ["QTA", "Q TA", "QUANTITA"]) { quantitaInTesta = true }
 
             if isTotale(norm) {
                 b.totale = prezzoFinale(riga)?.valore ?? (i + 1 < righe.count ? numeroSolo(righe[i + 1]) : nil)
@@ -113,11 +120,12 @@ enum ParserScontrino {
                 continue
             }
 
-            if daIgnorare(norm) { continue }
+            if daIgnorare(norm) || leggiData(riga) != nil { continue }   // "13-11-26 ORE 18.45" non è un prodotto da 18,45
 
             guard let p = prezzoFinale(riga) else {
                 // descrizione senza prezzo: potrebbe essere seguita da "2 x 0,89  1,78" o dal solo prezzo
-                if vistoPrezzo || quantitaInSospeso != nil, lettere(riga) >= 2 { descrizioneInSospeso = riga }
+                // vale anche per la prima voce dello scontrino ("BANANE" e sotto il peso): si usa solo se la riga dopo è un prezzo
+                if lettere(riga) >= 2 { descrizioneInSospeso = riga }
                 if let v = numeroSolo(riga), let d = descrizioneInSospeso, d != riga {
                     voci.append(voce(d, q: 1, pu: v, totale: v, unita: "pz"))
                     descrizioneInSospeso = nil
@@ -127,8 +135,9 @@ enum ParserScontrino {
 
             var descrizione = p.descrizione
             if lettere(descrizione) < 2 {
-                guard let d = descrizioneInSospeso else { continue }
-                descrizione = d
+                if let d = descrizioneInSospeso { descrizione = d }
+                else if p.valore < 0 { descrizione = "Sconto" }   // "3X2 -1,80" o un importo negativo da solo
+                else { continue }
             }
             descrizioneInSospeso = nil
             vistoPrezzo = true
@@ -138,6 +147,9 @@ enum ParserScontrino {
 
             if let q = quantitaInSospeso, abs(q.q * q.pu - valore) < 0.02 {
                 voci.append(voce(descrizione, q: q.q, pu: q.pu, totale: valore, unita: q.unita))
+            } else if quantitaInTesta, valore > 0, let m = descrizione.firstMatch(of: #/^([0-9]{1,2})\s+(.*\p{L}.*)$/#), let n = Double(m.output.1), n >= 1 {
+                // "2 Panino  7.00": due pezzi a 3,50
+                voci.append(voce(String(m.output.2), q: n, pu: (valore / n).centesimi, totale: valore, unita: "pz"))
             } else {
                 voci.append(voce(descrizione, q: 1, pu: valore, totale: valore, unita: "pz"))
             }
@@ -146,7 +158,7 @@ enum ParserScontrino {
 
         // le righe a 0,00 (busta in omaggio, componenti del menu) non sono spese
         b.righe = applicaSconti(voci.filter { $0.totale != 0 })
-        if b.totale == nil, !b.righe.isEmpty { b.totale = b.righe.reduce(0) { $0 + $1.totale }.centesimi }
+        // se il totale non è stato letto resta nil: usare la somma delle righe spegnerebbe il controllo «somma = totale»
         return b
     }
 
@@ -171,7 +183,7 @@ enum ParserScontrino {
 
     /// dd/mm/yyyy, dd-mm-yy, dd.mm.yyyy. Prima data valida della riga.
     static func leggiData(_ s: String) -> Date? {
-        guard let re = try? NSRegularExpression(pattern: #"(?<!\d)(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4}|\d{2})(?!\d)"#) else { return nil }
+        guard let re = try? NSRegularExpression(pattern: #"(?<![0-9])([0-9]{1,2})[/.\-]([0-9]{1,2})[/.\-]([0-9]{4}|[0-9]{2})(?![0-9])"#) else { return nil }
         for m in re.matches(in: s, range: NSRange(s.startIndex..., in: s)) {
             let g = (1...3).map { Int(s[Range(m.range(at: $0), in: s)!])! }
             let anno = g[2] < 100 ? 2000 + g[2] : g[2]
@@ -258,23 +270,34 @@ enum ParserScontrino {
         return p.valore
     }
 
+    /// "TOTALE EURO IVA INCLUSA 3,00" e "TOTALE 5 ARTICOLI 3,80" sono il totale; "TOTALE SCONTI" o "DI CUI IVA" no.
     private static func isTotale(_ norm: String) -> Bool {
-        let t = " \(norm) "
+        var t = " \(norm) "
         guard t.contains(" TOTALE ") || t.contains(" TOT ") || t.contains(" IMPORTO PAGATO ") else { return false }
-        return !contiene(norm, ["SUBTOTALE", "SUBTOT", "IVA", "SCONTI", "SCONTO", "PEZZI", "ARTICOLI", "PUNTI", "RISPARMIO", "RISPARMIATO", "IMPONIBILE", "IMPOSTA"])
+        for frase in [" IVA INCLUSA ", " IVA COMPRESA ", " IVA INCL "] { t = t.replacingOccurrences(of: frase, with: " ") }
+        return !contiene(t, ["SUBTOTALE", "SUBTOT", "IVA", "SCONTI", "SCONTO", "PUNTI", "RISPARMIO", "RISPARMIATO", "IMPONIBILE", "IMPOSTA"])
     }
 
+    /// SC, PROMO, OFFERTA e BUONO valgono solo come prima parola: "PANE BUONO" e "CAFFE SC" sono prodotti.
     private static func isSconto(_ norm: String) -> Bool {
-        contiene(norm, ["SCONTO", "SCONTI", "SC", "PROMO", "OFFERTA", "RIBASSO", "BUONO", "COUPON", "RIDUZIONE"])
+        let prima = norm.split(separator: " ").first.map(String.init) ?? ""
+        return contiene(norm, ["SCONTO", "SCONTI", "RIBASSO", "COUPON", "RIDUZIONE"]) || ["SC", "PROMO", "OFFERTA", "BUONO"].contains(prima)
     }
 
     /// Righe che non sono prodotti.
     private static func daIgnorare(_ norm: String) -> Bool {
-        contiene(norm, ["SUBTOTALE", "SUBTOT", "IVA", "IMPONIBILE", "IMPOSTA", "ALIQUOTA", "RESTO", "CONTANTE", "CONTANTI",
-                        "PAGAMENTO", "PAGATO", "ELETTRONICO", "BANCOMAT", "POS", "CREDITO", "DEBITO", "RESO",
-                        "DOCUMENTO", "DOC", "SCONTRINO", "CASSA", "CASSIERE", "OPERATORE", "TRANSAZIONE", "AUTORIZZAZIONE",
-                        "MATRICOLA", "RT", "TESSERA", "SALDO", "ARROTONDAMENTO", "NUMERO", "ARTICOLI", "PEZZI", "TOT",
-                        "TELEFONO", "TEL", "GRAZIE", "ARRIVEDERCI", "CF", "PREZZO", "DESCRIZIONE"])
+        let parole = norm.split(separator: " ").map(String.init)
+        // parole che stanno anche nei nomi dei prodotti ("CASSA ACQUA 6X1,5", "VINO ROSSO DOC", "PEZZI DI POLLO"):
+        // la riga si scarta solo se, tolte quelle e i numeri, non resta altro ("CASSA 3 12.33")
+        let ambigue = ["CASSA", "PEZZI", "SALDO", "CREDITO", "NUMERO", "DOC", "CF", "RESO"]
+        if parole.contains(where: ambigue.contains), parole.allSatisfy({ ambigue.contains($0) || $0.contains(where: \.isNumber) }) { return true }
+        // righe di servizio riconoscibili dalla prima parola ("ORE 18.45", "HAI RISPARMIATO 0,50", "TOTALE SCONTI 0,50")
+        if let prima = parole.first, ["ORA", "ORE", "DATA", "RISPARMIO", "RISPARMIATO", "HAI", "TOTALE"].contains(prima) { return true }
+        return contiene(norm, ["SUBTOTALE", "SUBTOT", "IVA", "IMPONIBILE", "IMPOSTA", "ALIQUOTA", "RESTO", "CONTANTE", "CONTANTI",
+                               "PAGAMENTO", "PAGATO", "ELETTRONICO", "BANCOMAT", "POS", "CARTA DI CREDITO", "CARTA CREDITO", "DEBITO",
+                               "DOCUMENTO", "SCONTRINO", "CASSIERE", "OPERATORE", "TRANSAZIONE", "AUTORIZZAZIONE",
+                               "MATRICOLA", "RT", "TESSERA", "PUNTI", "ARROTONDAMENTO", "ARTICOLI", "TOT",
+                               "TELEFONO", "TEL", "GRAZIE", "ARRIVEDERCI", "PREZZO", "DESCRIZIONE"])
     }
 
     // MARK: Intestazione
@@ -474,15 +497,50 @@ enum ParserScontrino {
         1 Maionese  10%
         Sconto:  -1.95
         1 Panino Pollo  10%  7.10
+        2 Bibita  10%  5.00
         1 Busta  10%  0.00
-        OUT Totale EURO  17.40
-        Pagamento Contanti  20.00
+        OUT Totale EURO  22.40
+        Pagamento Contanti  25.00
         Resto  2.60
         """
         let e = analizza(menu)
-        assert(vicino(e.totale, 17.4) && e.pagatoInContanti == true, "totale: \(String(describing: e.totale))")
-        assert(e.righe.map(\.totale) == [7.9, 0.4, 2, 7.1], "menu: \(e.righe.map { ($0.testo, $0.totale) })")
-        assert(vicino(e.righe[0].prezzoUnitario, 9.1))
+        assert(vicino(e.totale, 22.4) && e.pagatoInContanti == true, "totale: \(String(describing: e.totale))")
+        assert(e.righe.map(\.totale) == [7.9, 0.4, 2, 7.1, 5], "menu: \(e.righe.map { ($0.testo, $0.totale) })")
+        assert(vicino(e.righe[0].prezzoUnitario, 9.1) && e.righe[0].testo == "Menu Bacon Medio", "quantità in testa: \(e.righe[0])")
+        assert(e.righe[4].testo == "Bibita" && e.righe[4].quantita == 2 && vicino(e.righe[4].prezzoUnitario, 2.5), "due bibite: \(e.righe[4])")
+
+        // 6. Casi limite: prima voce su due righe, «3X2», meno tipografico, parole chiave dentro i nomi, righe di servizio,
+        //    data della tessera, «TOTALE 5 ARTICOLI», carta igienica pagata in contanti
+        let limite = """
+        MARKET UNO
+        TESSERA EMESSA IL 01/01/2020
+        BANANE
+        0,735 kg x 2,49 EUR/kg  1,83
+        CASSA ACQUA 6X1,5  3,50
+        VINO ROSSO DOC  4,50
+        PANE BUONO  2,00
+        FIDATY \u{2212}0,50
+        CARTA IGIENICA  3,00
+        BISCOTTI  1,80
+        BISCOTTI  1,80
+        BISCOTTI  1,80
+        3X2 -1,80
+        HAI RISPARMIATO 2,30
+        13-11-26 ORE 18.45
+        TOTALE 9 ARTICOLI  17,93
+        CONTANTI  20,00
+        RESTO  2,07
+        """
+        let f = analizza(limite)
+        assert(f.righe.map(\.testo) == ["BANANE", "CASSA ACQUA 6X1,5", "VINO ROSSO DOC", "PANE BUONO", "CARTA IGIENICA", "BISCOTTI", "BISCOTTI", "BISCOTTI"],
+               "casi limite: \(f.righe.map { ($0.testo, $0.totale) })")
+        assert(f.righe.map(\.totale) == [1.83, 3.5, 4.5, 1.5, 3, 1.8, 1.8, 0], "sconti: \(f.righe.map(\.totale))")
+        assert(vicino(f.righe[0].quantita, 0.735) && f.righe[0].unita == "kg", "peso: \(f.righe[0])")
+        assert(vicino(f.totale, 17.93) && f.pagatoInContanti == true, "totale e pagamento: \(String(describing: f.totale)) \(String(describing: f.pagatoInContanti))")
+        assert(calendario.component(.year, from: f.data!) == 2026 && calendario.component(.day, from: f.data!) == 13, "data: \(f.data!)")
+        // totale non riconosciuto: resta nil invece di diventare la somma delle righe (che spegnerebbe il controllo)
+        assert(analizza("NEGOZIO\nPANE 2,00\nLATTE 1,20\nT0TALE 3,20").totale == nil)
+        assert(leggiData("\u{FF11}\u{FF12}/\u{FF10}\u{FF13}/\u{FF12}\u{FF10}\u{FF12}\u{FF16}") == nil)   // cifre a larghezza piena: prima l'app si chiudeva
 
         func r(_ t: Double) -> BozzaScontrino.Riga { .init(testo: "", prezzoUnitario: t, totale: t) }
         assert(applicaSconti([r(2), r(-0.5)]).map(\.totale) == [1.5])

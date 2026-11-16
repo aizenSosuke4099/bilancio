@@ -317,6 +317,7 @@ fileprivate extension ScontrinoGenerato {
             var pu = r.prezzoUnitario
             if tot == 0, pu != 0 { tot = q * pu }
             if pu == 0 { pu = tot / q }
+            if tot > 0, q * pu < tot - 0.01 { pu = tot / q }   // il prezzo di listino non può essere meno del pagato
             let cat = LettoreScontrino.categoria(r.categoria, tra: categorie) ?? ""
             let daTesto = ParserScontrino.formato(da: testo)
             return BozzaScontrino.Riga(testo: testo, quantita: q, prezzoUnitario: pu.centesimi, totale: tot.centesimi, categoria: cat,

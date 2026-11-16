@@ -22,6 +22,8 @@ private struct AcquistoInflazione: Identifiable {
 private struct VoceInflazione: Identifiable {
     let prodotto: Prodotto
     let acquisti: [AcquistoInflazione]
+    /// Acquisti con un prezzo lontanissimo dagli altri (di solito un errore di lettura): non entrano nei calcoli.
+    var anomali: [AcquistoInflazione] = []
 
     var id: PersistentIdentifier { prodotto.persistentModelID }
     var primo: Double { acquisti.first?.prezzo ?? 0 }
@@ -36,7 +38,7 @@ private struct VoceInflazione: Identifiable {
 
     init(_ prodotto: Prodotto) {
         self.prodotto = prodotto
-        acquisti = prodotto.righe.compactMap { r in
+        let tutti: [AcquistoInflazione] = prodotto.righe.compactMap { r in
             guard let s = r.scontrino else { return nil }
             let confezione = r.prezzoUnitario > 0 ? r.prezzoUnitario : (r.quantita > 0 ? r.totale / r.quantita : r.totale)
             return AcquistoInflazione(
@@ -45,6 +47,13 @@ private struct VoceInflazione: Identifiable {
                 quantita: r.quantita, totale: r.totale, scontrino: s)
         }
         .sorted { $0.data < $1.data }
+        // un prezzo letto male ("12,9" invece di "1,29") da solo porterebbe l'inflazione a +2000%:
+        // con almeno tre acquisti si tengono fuori quelli sotto 0,4 o sopra 2,5 volte la mediana
+        let prezzi = tutti.map(\.prezzo).filter { $0 > 0 }.sorted()
+        let mediana = prezzi.count >= 3 ? prezzi[prezzi.count / 2] : nil
+        func normale(_ a: AcquistoInflazione) -> Bool { mediana.map { a.prezzo >= $0 * 0.4 && a.prezzo <= $0 * 2.5 } ?? true }
+        acquisti = tutti.filter(normale)
+        anomali = tutti.filter { !normale($0) }
     }
 }
 
@@ -299,6 +308,14 @@ private struct DettaglioProdottoInflazione: View {
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+
+                ForEach(voce.anomali) { a in
+                    NavigationLink { ScontrinoDettaglioView(scontrino: a.scontrino) } label: {
+                        Label("Prezzo anomalo non contato: \(a.prezzo.euro) il \(a.data.breve) da \(a.negozio). Tocca per controllare lo scontrino.",
+                              systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption).foregroundStyle(.orange).multilineTextAlignment(.leading)
+                    }
                 }
 
                 let scelto = dataScelta.flatMap { d in voce.acquisti.min { abs($0.data.timeIntervalSince(d)) < abs($1.data.timeIntervalSince(d)) } }

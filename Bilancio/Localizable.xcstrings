@@ -5152,6 +5152,16 @@
         }
       }
     },
+    "Non ho letto il totale: ho messo la somma delle righe. Controllalo sullo scontrino.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't read the total: I used the sum of the rows. Check it against the receipt."
+          }
+        }
+      }
+    },
     "Non ho riconosciuto il formato del file.": {
       "localizations": {
         "en": {
@@ -5907,6 +5917,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Manual price"
+          }
+        }
+      }
+    },
+    "Prezzo anomalo non contato: %@ il %@ da %@. Tocca per controllare lo scontrino.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unusual price not counted: %@ on %@ at %@. Tap to check the receipt."
           }
         }
       }

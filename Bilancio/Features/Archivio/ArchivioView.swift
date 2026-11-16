@@ -198,6 +198,11 @@ private struct ScontriniNegozioArchivio: View {
             // il movimento creato dallo scontrino porta lo stesso nome
             if let m = s.movimento, m.titolo == negozio { m.titolo = nuovo }
         }
+        // anche la regola imparata porta il nome vecchio: senza questo il prossimo scontrino lo riproporrebbe
+        let vecchio: String? = negozio, ambito = AmbitoRegola.descrizioneBanca.rawValue
+        for r in (try? context.fetch(FetchDescriptor<RegolaAppresa>(predicate: #Predicate { $0.ambitoRaw == ambito && $0.titolo == vecchio }))) ?? [] {
+            r.titolo = nuovo
+        }
         try? context.save()
         dismiss()
     }
