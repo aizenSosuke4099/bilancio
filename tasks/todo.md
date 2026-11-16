@@ -17,10 +17,10 @@ Diario di lavoro: decisioni, insidie, cosa è stato provato. **La documentazione
   Si sceglie come è stato pagato (contanti o conto/carta); se esiste già il movimento bancario corrispondente, si collega.
 - **Inflazione**: prodotti riacquistati ciclicamente → prezzo nel tempo (anche €/kg, €/l), variazione %, grafico, inflazione personale vs ISTAT.
 - **Investimenti**: broker con PAC mensile (importo + % per ETF, quote frazionate calcolate col prezzo del giorno, riallineamento con quote reali),
-  conto deposito remunerato + obbligazioni, fondi pensione (anche in CHF → EUR), robo-advisor (valore manuale).
+  conto deposito remunerato + obbligazioni, fondi pensione (anche in valuta estera), robo-advisor (valore manuale).
   ISIN → prezzo automatico (Yahoo Finance), cambio BCE (Frankfurter). Versato, valore attuale, guadagno, per piattaforma e tipo.
 - **Banche collegate**: Enable Banking (PSD2, gratis per uso personale, consenso **180 giorni**, notifica prima della scadenza);
-  conti correnti, conti online e carte di credito (se non supportati: import CSV/PDF). Sync all'apertura + background (max 4/giorno).
+  conti correnti, conti online e carte di credito (se non supportati: import CSV/PDF). Sync all'apertura dell'app (niente background: vedi Sicurezza).
   Giroconti, prelievi (→ Contanti), saldo carte di credito e versamenti investimenti **non** sono spese. Abbinamento scontrini ↔ movimenti.
 - **Contanti**: conto con saldo che si riporta di mese in mese; prelievi lo alimentano; rettifica "conto i contanti".
 - **Ricorrenti**: proposti ogni mese da confermare (stipendio, abbonamenti, PAC); elenco con totale annuo.
@@ -103,7 +103,7 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - Prova in inglese: `-demo -tab N -AppleLanguages (en)` dopo aver disinstallato l'app (i dati demo si creano solo a database vuoto).
 
 ### Valute, aggiornamenti, backup aperto (15/11 sera)
-- Conti in valuta estera (es. un conto svizzero in CHF): `Conto.valuta`; `Movimento.importo` resta SEMPRE in euro (convertito con
+- Conti in valuta estera (es. un conto in CHF): `Conto.valuta`; `Movimento.importo` resta SEMPRE in euro (convertito con
   `Contabilita.inEuro` all'ultimo cambio BCE), l'originale in `importoOriginale`/`valutaOriginale`.
   Saldo: `Contabilita.saldoInValuta` (valuta del conto) e `saldo` (euro al cambio di oggi). Giroconti tra valute diverse: margine 3%.
 - "Aggiorna app" (Altro): confronta il commit scritto da `installa.sh` nell'Info.plist (`BilancioCommit`) con `main` su GitHub.
@@ -132,8 +132,8 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - Cartella di Bilancio visibile in File (`LSSupportsOpeningDocumentsInPlace` = true). Non usare PlistBuddy sull'Info.plist: toglie i commenti.
 - Banche (15/11 sera): prime banche collegate, sincronizzazione OK. Errore 429 ASPSP_RATE_LIMIT_EXCEEDED risolto con le
   intestazioni PSU (`EnableBanking.intestazioniPSU`) quando l'utente usa l'app; in background niente intestazioni (limite ~4/giorno).
-  Collegata con la pagina ponte anche una banca che conferma il login nella sua app (consenso max 90 giorni, banca "beta").
-  Carte e banche non presenti su Enable Banking (anche svizzere, in CHF): import dell'estratto conto.
+  Con la pagina ponte funzionano anche le banche che confermano il login nella loro app.
+  Carte e banche non presenti su Enable Banking: import dell'estratto conto.
 - Login banche (15/11 notte): Enable Banking accetta solo redirect https. Redirect predefinito = pagina ponte GitHub Pages
   https://aizensosuke4099.github.io/bilancio/callback/ (docs/callback/index.html) → bilancio://callback; il login gira in
   ASWebAuthenticationSession (passa alle app delle banche che confermano il login nella loro app). Il ritorno da fuori vale solo con lo state giusto.
@@ -143,3 +143,26 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
   Backup esportati cifrati con password (`CifraturaBackup`: PBKDF2-HMAC-SHA256 600k + AES-256-GCM, file *.enc + cifratura.json);
   i backup locali restano in chiaro (protetti da iOS) per il backup automatico. Ripristino: chiede la password se serve.
   Chiave .pem: in Portachiavi sull'iPhone e nel gestore di password dell'utente; le copie in Documents si cancellano da sole.
+
+### Revisione completa (16-17/11)
+- Sei revisioni in sola lettura (sicurezza, abbinamenti e banche, scontrini, dati e backup, calcoli, estratti conto), poi le
+  correzioni nei commit "Revisione 1/5" … "5/5". Il README è aggiornato a queste modifiche.
+- Abbinamenti (`Core/Abbinamento.swift`): `giorniTolleranza` 3 (movimenti previsti e giroconti), `giorniAddebito` 10 (scontrino →
+  addebito, mai il contrario), `giorniCollegamento` 45 e `scartoCollegamento` 20% (collegamento a mano). Si confronta l'importo
+  nella valuta del conto (`nelConto`). `generico` dice quali movimenti possono diventare giroconto per abbinamento.
+- `Sincronizzazione.eliminati`: id delle transazioni eliminate dall'utente (UserDefaults + backup), per non farle ricomparire.
+  `Sincronizzazione.scollega`: scollegando una banca il saldo riparte dall'ultimo letto.
+- Backup: si scrive in `.in-corso-*` e si rinomina alla fine; il ripristino si prepara in `RipristinoInPreparazione` e diventa
+  `RipristinoInSospeso` solo quando è completo; prima di un ripristino si fa un backup dei dati attuali.
+- Parser degli scontrini: il totale non letto resta nil (mai la somma delle righe); parole "ambigue" scartano la riga solo se non
+  resta altro; quantità in testa alla riga solo con la colonna Qta.
+- Estratti conto: colonne in tedesco, `righeNonLette` (righe con data o importo illeggibili), `èSaldo`, giroconto proposto già
+  nell'anteprima con `Abbinamento.controparte`.
+- Investimenti: `Portafoglio.investitoEUR` è il denominatore del rendimento; `guadagnoEUR` include dividendi e cedole.
+- `-verifica` ora controlla anche `Portafoglio` e `GeneratoreRicorrenze` (prima era un programma a parte che non compilava più).
+- `installa.sh`: l'identificativo dell'app si può cambiare con il file locale `.identificativo` (per chi usa un altro Apple ID).
+- Lasciato così di proposito: con l'addebito arrivato prima dello scontrino resta la data della banca; una ricorrenza con importo
+  variabile resta un doppione visibile da eliminare a mano; `leggiNumero("1.500")` vale 1,5 (trattarlo come migliaia romperebbe
+  pesi e prezzi con tre decimali sugli scontrini).
+- Scelte che spettano all'utente: backup locali visibili nell'app File (aggirano il blocco con Face ID), dati dell'app nel backup
+  iCloud dell'iPhone, nome della banca nelle notifiche di scadenza.

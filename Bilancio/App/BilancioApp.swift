@@ -7,7 +7,7 @@ struct BilancioApp: App {
 
     init() {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-verifica") { Abbinamento.autoverifica(); Portafoglio.autoverifica(); BackupAperto.autoverifica(); CifraturaBackup.autoverifica(); CalcoloInflazione.autoverifica(); ISTAT.autoverifica(); print("Inflazione e ISTAT: autoverifica OK") }
+        if ProcessInfo.processInfo.arguments.contains("-verifica") { Abbinamento.autoverifica(); Portafoglio.autoverifica(); GeneratoreRicorrenze.autoverifica(); BackupAperto.autoverifica(); CifraturaBackup.autoverifica(); CalcoloInflazione.autoverifica(); ISTAT.autoverifica(); print("Inflazione e ISTAT: autoverifica OK") }
         // prova del giro completo: backup del database vero → ripristino in sospeso, applicato al prossimo avvio
         if ProcessInfo.processInfo.arguments.contains("-provaRipristino") {
             let ctx = Persistenza.container.mainContext

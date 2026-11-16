@@ -51,14 +51,16 @@ enum GeneratoreRicorrenze {
     }
 }
 
-// MARK: - Self-check
-// Dalla radice del progetto:
-//   swiftc -D VERIFICA_RICORRENZE -parse-as-library Bilancio/Core/Formato.swift Bilancio/Modello/*.swift Bilancio/Core/Contabilita.swift Bilancio/Core/Abbinamento.swift Bilancio/Core/Portafoglio.swift Bilancio/Features/Ricorrenti/GeneratoreRicorrenze.swift -o /tmp/verifica_ricorrenze && /tmp/verifica_ricorrenze
-#if VERIFICA_RICORRENZE
-@main enum VerificaRicorrenze {
-    static func g(_ a: Int, _ m: Int, _ d: Int) -> Date { calendario.date(from: DateComponents(year: a, month: m, day: d))! }
+// MARK: - Self-check (avvio con `-verifica`)
+#if DEBUG
+extension GeneratoreRicorrenze {
+    private static func g(_ a: Int, _ m: Int, _ d: Int) -> Date { calendario.date(from: DateComponents(year: a, month: m, day: d))! }
 
-    static func main() throws {
+    @MainActor static func autoverifica() {
+        do { try verifica() } catch { fatalError("Ricorrenze: \(error)") }
+    }
+
+    private static func verifica() throws {
         // date dovute
         precondition(GeneratoreRicorrenze.dateDovute(ultimaGenerazione: g(2026, 1, 1), ogniMesi: 1, giorno: 31, oggi: g(2026, 4, 15)) == [g(2026, 2, 28), g(2026, 3, 31)])
         precondition(GeneratoreRicorrenze.dateDovute(ultimaGenerazione: nil, ogniMesi: 1, giorno: 10, oggi: g(2026, 4, 15)) == [g(2026, 4, 10)])
@@ -67,9 +69,7 @@ enum GeneratoreRicorrenze {
         precondition(GeneratoreRicorrenze.dateDovute(ultimaGenerazione: g(2026, 4, 1), ogniMesi: 1, giorno: 15, oggi: g(2026, 4, 30)).isEmpty)
 
         // generazione su un database in memoria
-        let schema = Schema([Conto.self, Movimento.self, Categoria.self, Scontrino.self, RigaScontrino.self, Prodotto.self, RegolaAppresa.self,
-                             Ricorrenza.self, Strumento.self, Operazione.self, Valutazione.self, PianoPAC.self, AllocazionePAC.self])
-        let container = try ModelContainer(for: schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let container = try ModelContainer(for: Persistenza.schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let ctx = ModelContext(container)
         let netflix = Ricorrenza(nome: "Netflix", importo: -12.99, tipo: .spesa, giorno: 31)
         netflix.ultimaGenerazione = g(2026, 1, 1)

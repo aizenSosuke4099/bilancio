@@ -45,6 +45,7 @@ Scritta in SwiftUI + SwiftData, senza dipendenze esterne. Interfaccia in italian
 | Aggiungere un conto o una banca | prima **Control Panel › Link accounts**, poi nell'app **Collega una banca** ([dettagli](#aggiungere-un-nuovo-conto-o-una-nuova-banca)) |
 | Backup | *Altro › Backup*: automatico ogni settimana sul telefono; **esportalo** ogni tanto (protetto da password) |
 | Nuove versioni | *Altro › Aggiorna app* dice se su GitHub c'è qualcosa di nuovo |
+| Farla usare a un'altra persona | le serve un identificativo dell'app suo e un suo account Enable Banking ([dettagli](#se-la-vuole-usare-unaltra-persona)) |
 
 ---
 
@@ -57,7 +58,8 @@ Cinque schede in basso:
 - **Mese** – scelta del mese; avviso "N movimenti da confermare"; spesa accumulata giorno per giorno confrontata col mese prima;
   categorie con budget; ultimi movimenti; consigli del mese; controllo di fine mese.
 - **Scansiona** – fotografi uno scontrino (anche lungo, in più foto): l'app legge negozio, data, righe e totale, propone categoria e
-  nome del prodotto, tu controlli e confermi. Se il pagamento è già arrivato dalla banca, lo collega invece di contarlo due volte.
+  nome del prodotto, tu controlli e confermi. Se il pagamento è già arrivato dalla banca, lo collega invece di contarlo due volte;
+  se non è ancora arrivato, la spesa pagata con carta resta *da confermare* finché non arriva l'addebito.
 - **Investimenti** – strumenti (ETF, azioni, obbligazioni, fondi pensione, gestioni), piani di accumulo (PAC) con le percentuali per
   ETF, prezzi aggiornati da soli, versato, valore, guadagno, ripartizione per piattaforma.
 - **Altro**
@@ -72,12 +74,18 @@ Cinque schede in basso:
 
 Altro da sapere:
 
-- **Movimenti "da confermare"**: quelli arrivati dalla banca aspettano la tua conferma (banner blu in *Mese*). Ogni correzione di
-  tipo, categoria o titolo viene ricordata e applicata da sola la volta dopo.
+- **Movimenti "da confermare"** (banner blu in *Mese*): quelli arrivati dalla banca aspettano la tua conferma, e così gli
+  **scontrini pagati con carta o conto** finché non arriva l'addebito (quelli in contanti nascono confermati). Quando scontrino e
+  addebito combaciano diventano un solo movimento, confermato. Ogni correzione di tipo, categoria o titolo viene ricordata e
+  applicata da sola la volta dopo.
+- **Controllo di fine mese** (in fondo a *Mese*): movimenti da confermare; scontrini senza pagamento bancario, con «Era in
+  contanti», «Collega a un pagamento» e ✓ per confermare; pagamenti senza scontrino; saldo dei contanti.
 - **Tipi di movimento**: *spesa*, *entrata*, *giroconto* (spostamento tra conti tuoi: non conta nei totali), *investimento*.
 - **Face ID** all'apertura e al ritorno nell'app; nel multitasking il contenuto è sfocato.
 - **Notifiche**: firma dell'app in scadenza, collegamenti con le banche in scadenza, promemoria di backup.
-- **Lingua**: segue quella dell'iPhone (italiano o inglese). Le categorie iniziali nascono nella lingua del telefono.
+- **Lingua**: segue quella dell'iPhone (italiano o inglese; con le altre lingue resta in italiano). Per sceglierla solo per
+  Bilancio: *Impostazioni › Lingua dell'app* apre le impostazioni di iOS, dove la voce *Lingua* compare se l'iPhone ha almeno due
+  lingue preferite. Le categorie iniziali nascono nella lingua del telefono.
 
 ---
 
@@ -86,8 +94,8 @@ Altro da sapere:
 | Cosa | Dove | Note |
 |---|---|---|
 | Database (movimenti, conti, scontrini, investimenti…) | iPhone, cartella privata dell'app (SwiftData) | cifrato da iOS, illeggibile a telefono bloccato |
-| Foto degli scontrini | dentro il database | |
-| Backup locali | iPhone, *File › Sul mio iPhone › Bilancio › Backup* | uno a settimana, si tengono gli ultimi 4 |
+| Foto degli scontrini | file separati nella cartella del database | stessa protezione del database |
+| Backup locali | iPhone, *File › Sul mio iPhone › Bilancio › Backup* | uno a settimana, si tengono gli ultimi 4; in chiaro ([Sicurezza](#sicurezza)) |
 | Backup esportati | dove li salvi tu (iCloud Drive, Google Drive, Mac) | cifrati con la **tua password** |
 | Chiave privata Enable Banking (`.pem`) | Portachiavi dell'iPhone (solo quel telefono) + **copia nel gestore di password** | senza, l'app non può leggere le banche |
 | Application ID Enable Banking | Portachiavi dell'iPhone + gestore di password + Control Panel di Enable Banking | non è segreto, ma serve |
@@ -140,6 +148,26 @@ installata così di aggiornarsi da sola: l'aggiornamento lo fa `installa.sh` (st
 - **"Sviluppatore non autorizzato"** → *VPN e gestione dispositivi* › Autorizza.
 - **Lo script dice "Nessun iPhone collegato"** → sblocca l'iPhone, tocca "Autorizza questo computer", controlla la Modalità sviluppatore.
 - **Errore di firma o "No profiles"** → apri Xcode una volta con l'iPhone collegato e controlla l'Apple ID in *Settings › Accounts*.
+
+### Se la vuole usare un'altra persona
+
+Il progetto è pubblico e non contiene dati di nessuno: chi lo scarica parte da un'app vuota, e i suoi dati restano sul suo telefono.
+
+1. Le servono le stesse cose di [Cosa serve](#cosa-serve): un Mac con Xcode, il suo Apple ID in Xcode, l'iPhone con la Modalità
+   sviluppatore, il codice scaricato con `git clone`.
+2. **Sceglie un identificativo dell'app suo**, una volta sola: quello del progetto è già registrato sull'Apple ID dell'autore, e
+   Apple non lo concede a un altro. Il file resta sul suo Mac (git lo ignora).
+
+   ```bash
+   echo it.iltuonome.bilancio > ~/Developer/bilancio/.identificativo
+   ```
+
+3. Lancia `installa.sh`, come sopra.
+4. Per collegare le banche crea un **suo** account Enable Banking con la sua chiave ([Banche collegate](#banche-collegate-enable-banking)).
+   Come indirizzo di ritorno può registrare la pagina ponte di questo progetto, che rimanda soltanto all'app, oppure quella di una
+   sua copia del repository.
+
+Con `installa.sh` riceve anche gli aggiornamenti pubblicati qui.
 
 ---
 
@@ -210,8 +238,11 @@ giorno della scadenza.
 - **Niente aggiornamento in background**: è il prezzo della cifratura completa del database ([Sicurezza](#sicurezza)).
 - Ogni sincronizzazione riprende da 5 giorni prima dell'ultima (le banche contabilizzano in ritardo); i doppioni vengono scartati
   grazie agli identificativi delle transazioni.
-- Con l'app aperta l'app invia le **intestazioni PSU** (IP e identificativo dell'app): la banca sa che sei presente e non applica il
-  limite di ~4 letture al giorno previsto per gli accessi senza utente.
+- Un movimento della banca che **elimini** non ricompare alle sincronizzazioni successive (l'elenco degli eliminati viaggia anche
+  nel backup). Una transazione già importata da un estratto conto non si duplica quando arriva anche dalla banca collegata.
+- Scollegando una banca, il saldo del conto riparte dall'ultimo letto e da lì segue i movimenti.
+- Con l'app aperta l'app invia le **intestazioni PSU** (indirizzo IP della rete del telefono, versione dell'app e di iOS): la banca
+  sa che sei presente e non applica il limite di ~4 letture al giorno previsto per gli accessi senza utente.
 
 ### Se la chiave privata va persa
 
@@ -245,6 +276,16 @@ non è nel PSD2). Per quelle usa gli [estratti conto](#estratti-conto-csv-e-pdf)
    - Il **cerchio** a sinistra include o esclude la riga; scorrendo la riga puoi **invertire il segno** (PDF senza dare/avere).
 4. **Conferma e importa**: i movimenti entrano **già confermati**.
 
+Il lettore riconosce da solo: separatore (`;` `,` tab); codifiche comuni (UTF-8, Windows-1252, UTF-16 di Excel); nomi delle colonne
+in italiano, inglese e tedesco (anche *Belastung/Gutschrift* delle banche svizzere); una colonna con segno oppure due colonne
+Dare/Avere; importi con l'apostrofo per le migliaia o con la valuta (`CHF 45.20`); date numeriche o col mese a lettere. Quando ci
+sono sia l'importo nella valuta dell'acquisto sia quello in euro, sceglie quello in euro. Le righe di saldo iniziale e finale non
+diventano movimenti. **Se qualche riga ha una data o un importo che non riesce a leggere, la schermata *Colonne* lo dice in
+arancione**: controlla il formato della data prima di continuare.
+
+Nell'anteprima, un movimento che ha già la sua metà su un altro conto (il saldo mensile della carta pagato dal conto corrente, una
+ricarica) viene proposto come **giroconto**. Su un conto in valuta gli importi restano nella valuta del conto.
+
 Se il file ha una colonna **commissione** (es. "Fee" negli export di alcune banche online), ogni commissione diventa un movimento a parte in
 *Commissioni bancarie*.
 
@@ -262,6 +303,8 @@ Quando crei un conto (*Conti e contanti* › +) scegli la **valuta** (EUR, CHF, 
 - I bonifici tra un conto in euro e uno in un'altra valuta sono riconosciuti come giroconti anche se il cambio della banca è un po'
   diverso (tolleranza 3%). La differenza tra quanto è uscito e quanto è entrato al cambio BCE (spread e costi nascosti nel tasso)
   diventa una spesa "**Costo del cambio**" in *Commissioni bancarie*, senza toccare i saldi dei conti.
+- Scontrini, ricorrenze e movimenti inseriti a mano su un conto in valuta sono **nella valuta del conto**; scontrino e addebito si
+  riconoscono confrontando quell'importo, non il controvalore in euro.
 
 ---
 
@@ -277,11 +320,16 @@ In ordine:
 Altri automatismi:
 
 - **Giroconti tra conti tuoi**: un'uscita su un conto e un'entrata dello stesso importo su un altro conto entro 3 giorni diventano
-  entrambe giroconto (non contano nei totali). Se correggi a mano una metà in giroconto, cambia anche l'altra.
+  entrambe giroconto (non contano nei totali). Vale solo per i movimenti che nessuna parola chiave o regola ha riconosciuto: uno
+  stipendio e un affitto dello stesso importo restano quello che sono. Se correggi a mano una metà in giroconto, cambia anche l'altra.
 - **Pagamento della carta di credito** dal conto corrente: se la carta è tracciata nell'app, è un giroconto. La prima volta segnalo
   tu come *Giroconto*: l'app lo impara.
 - **Prelievi**: diventano un giroconto verso il conto *Contanti*.
-- **Scontrini**: uno scontrino e il pagamento bancario dello stesso importo (±3 giorni) vengono collegati, così la spesa non conta due volte.
+- **Scontrini**: uno scontrino e l'addebito dello stesso importo sullo stesso conto diventano un solo movimento, così la spesa non
+  conta due volte. L'addebito può arrivare fino a **10 giorni dopo** lo scontrino (carte di credito, fine settimana), anche nel
+  mese successivo: la spesa resta nel mese dello scontrino. Se non si uniscono da soli (importo diverso per una mancia o una valuta
+  estera, addebito ancora più tardivo), nel *Controllo di fine mese* **Collega a un pagamento** propone i pagamenti dei 45 giorni
+  successivi con importo uguale o vicino: resta l'importo dell'addebito.
 - **Commissioni**: canoni, spese dei bonifici, fee, spread, interessi passivi vanno in *Commissioni bancarie*; bolli, F24, imposte in
   *Tasse e imposte*.
 
@@ -294,6 +342,13 @@ Altri automatismi:
   inventava i prezzi. Controlli sempre prima di confermare; le correzioni vengono ricordate.
 - **Prodotti**: righe scritte in modo diverso (anche in negozi diversi) si uniscono in un unico prodotto (*Inflazione › Gestisci
   prodotti › Unisci*). Il formato (es. 500 g) permette il prezzo al kg o al litro, e scopre le "sgrammature".
+- **Sconti**: una riga di sconto viene tolta dal prodotto a cui si riferisce (di solito la riga sopra; in un menù, il menù e non
+  l'aggiunta da pochi centesimi). Il prezzo unitario resta quello di listino, il totale della riga è quello pagato e la riga mostra
+  «sconto X». Le righe a 0,00 € non vengono inserite.
+- **Totale**: se l'app non riesce a leggerlo propone la somma delle righe e lo scrive in arancione. Controllalo: se una riga è
+  sfuggita, la somma è sbagliata.
+- **Prezzi anomali**: un prezzo lontanissimo dagli altri acquisti dello stesso prodotto (di solito un errore di lettura) non entra
+  nei calcoli; il dettaglio del prodotto lo segnala, con il collegamento allo scontrino da correggere.
 - **Inflazione**: per ogni prodotto comprato in almeno due giorni diversi si confronta il prezzo; la tua inflazione è la media pesata
   sulla spesa degli ultimi 12 mesi. Il **paniere** concatena le variazioni mese per mese. Il dato **ISTAT** (indice NIC) si scarica
   da solo una volta al giorno e appare accanto. Tocca un punto del grafico o una riga degli acquisti per aprire lo **scontrino**.
@@ -302,7 +357,12 @@ Altri automatismi:
 
 ## Investimenti
 
-- **Strumenti** dall'ISIN: l'app trova il simbolo su Yahoo Finance e aggiorna i prezzi (al massimo ogni 6 ore, o tirando giù la pagina).
+- **Strumenti** dall'ISIN: l'app cerca su Yahoo Finance le borse dove è quotato e ti fa scegliere il **listino** (quelli in euro per
+  primi). Se conosci il **ticker** di Yahoo puoi scriverlo a mano: l'app mostra nome, valuta e prezzo trovati, per controllare che
+  sia lo strumento giusto. Per gli ETF c'è il collegamento alla scheda su justETF. I prezzi si aggiornano al massimo ogni 6 ore, o
+  tirando giù la pagina; un prezzo in una valuta diversa da quella dello strumento viene scartato.
+- **Guadagno e rendimento**: il guadagno è il valore di oggi, più dividendi e cedole, meno il capitale versato netto. Il rendimento
+  è il guadagno su tutto ciò che hai investito, quindi resta sensato anche dopo una vendita.
 - **PAC**: importo mensile ripartito in percentuale sugli ETF; ogni mese genera le operazioni con le quote frazionate calcolate al
   prezzo del giorno; puoi riallineare le quote con quelle reali.
 - **Fondi pensione e gestioni**: valore aggiornato a mano (*Valutazione*); versamenti dal conto.
@@ -318,12 +378,12 @@ Un backup è una **cartella** in formato aperto:
 
 | File | Contenuto |
 |---|---|
-| `bilancio.json` | tutti i dati (JSON UTF-8): conti, movimenti, categorie, ricorrenti, scontrini e righe, prodotti, regole imparate, strumenti, operazioni, valutazioni, PAC, collegamenti, formati di import |
+| `bilancio.json` | tutti i dati (JSON UTF-8): conti, movimenti, categorie, ricorrenti, scontrini e righe, prodotti, regole imparate, strumenti, operazioni, valutazioni, PAC, fotografie mensili del patrimonio, collegamenti, formati di import, identificativi dei movimenti bancari eliminati |
 | `foto/` | le foto degli scontrini |
 | `movimenti.csv` | i movimenti per Excel / Fogli Google |
 | `LEGGIMI.txt` | descrizione completa del formato (italiano e inglese) |
 
-Non contiene la chiave privata né l'Application ID.
+Non contiene la chiave privata né l'Application ID. Un backup compare nell'elenco solo quando è stato scritto per intero.
 
 **Esportato fuori dall'iPhone** (*Backup › Crea backup e salva in File…*) il backup è **cifrato con la tua password**: ogni file
 diventa `*.enc` (AES-256-GCM; chiave da PBKDF2-HMAC-SHA256 con 600.000 iterazioni e sale casuale; parametri in `cifratura.json`).
@@ -333,8 +393,9 @@ L'esportazione CSV è invece in chiaro.
 ### Ripristino
 
 *Backup* › scorri su un backup locale › **Ripristina**, oppure **Ripristina da una cartella di backup…** (per quelli esportati: chiede
-la password). Poi **chiudi l'app dal multitasking e riaprila**: i dati attuali vengono sostituiti, e una copia di sicurezza di quelli
-vecchi resta nella cartella dell'app. Si ripristinano anche i backup del vecchio formato (copia del database).
+la password). Poi **chiudi l'app dal multitasking e riaprila**: i dati attuali vengono sostituiti. Prima, l'app salva i dati attuali come
+un normale backup nell'elenco: se hai ripristinato quello sbagliato, torni indietro da lì. Se nel backup manca qualche foto i dati
+si ripristinano lo stesso, e l'app ti dice quante ne mancano. Si ripristinano anche i backup del vecchio formato (copia del database).
 
 ### Cambio di iPhone
 
@@ -357,19 +418,25 @@ descritto in `LEGGIMI.txt`, la cifratura usa algoritmi standard disponibili anch
 - **Dati a riposo**: database, foto, copie di sicurezza e backup locali hanno la protezione *completa* di iOS
   (`FileProtectionType.complete`): cifrati con una chiave legata al codice dell'iPhone, illeggibili a telefono bloccato.
   Per questo l'app non lavora in background.
-- **Segreti**: chiave privata e Application ID nel Portachiavi, accessibili solo su quel telefono
-  (`AfterFirstUnlockThisDeviceOnly`), mai su iCloud. Copie `.pem` lasciate nella cartella dell'app vengono cancellate; gli appunti
+- **Segreti**: chiave privata e Application ID nel Portachiavi, accessibili solo su quel telefono e solo quando è sbloccato
+  (`WhenUnlockedThisDeviceOnly`), mai su iCloud. Copie `.pem` lasciate nella cartella dell'app vengono cancellate; gli appunti
   si svuotano dopo aver incollato la chiave.
 - **Accesso alle banche in sola lettura** (Account Information): nessuno può fare pagamenti con questa configurazione.
 - **Face ID** (o codice) all'apertura e al ritorno; contenuto sfocato nel multitasking.
 - **Rete**: solo HTTPS. Nessuna analitica, nessun servizio riceve dati personali tranne la banca tramite Enable Banking
-  ([elenco](#servizi-esterni)).
+  ([elenco](#servizi-esterni)). Le risposte della banca e dei prezzi non vengono conservate nella cache su disco.
 - **Backup esportati** cifrati con password (vedi sopra).
 - **Login delle banche**: nel browser di sistema; il ritorno è accettato solo con lo `state` del login in corso.
 - **Repository pubblica** senza dati personali; commit con email anonima.
 
-Cosa resta (scelte consapevoli): la chiave privata vive sul telefono (inevitabile per un'app senza server); chi ha il telefono
-**sbloccato** in mano vede tutto, come per qualsiasi app.
+Cosa resta (scelte consapevoli):
+
+- la chiave privata vive sul telefono (inevitabile per un'app senza server);
+- i **backup locali** sono in chiaro e visibili nell'app File: comodo se l'app non si apre, ma chi ha il telefono **sbloccato** in
+  mano li legge senza passare da Face ID. Rimedio senza toccare il codice: bloccare l'app File con Face ID (tieni premuta l'icona
+  › *Richiedi Face ID*);
+- se il **backup iCloud dell'iPhone** è attivo, database e backup locali ne fanno parte, come per ogni app;
+- le notifiche di scadenza mostrano il nome della banca, anche sulla schermata di blocco se le anteprime sono attive.
 
 ---
 
@@ -377,9 +444,10 @@ Cosa resta (scelte consapevoli): la chiave privata vive sul telefono (inevitabil
 
 | Servizio | A cosa serve | Cosa riceve |
 |---|---|---|
-| Enable Banking (`api.enablebanking.com`) | saldi e movimenti delle banche | richieste firmate con la chiave; IP e versione dell'app (intestazioni PSU) |
+| Enable Banking (`api.enablebanking.com`) | saldi e movimenti delle banche; loghi nell'elenco delle banche | richieste firmate con la chiave; indirizzo IP della rete del telefono, versione dell'app e di iOS (intestazioni PSU) |
 | Pagina ponte su GitHub Pages | ritorno dal login della banca | `code` e `state` del login (inutili senza la chiave) |
-| Yahoo Finance | simboli e prezzi degli strumenti | ISIN e simboli degli strumenti |
+| Yahoo Finance | simboli e prezzi degli strumenti | ISIN, nomi e simboli degli strumenti |
+| justETF | scheda dell'ETF, solo se tocchi *Controlla su justETF* | l'ISIN, nel browser |
 | Frankfurter (dati BCE) | cambi delle valute | codici delle valute e date |
 | ISTAT (`esploradati.istat.it`) | indice dei prezzi NIC | nulla di personale |
 | GitHub API | *Aggiorna app* | il commit installato |
@@ -391,7 +459,7 @@ Cosa resta (scelte consapevoli): la chiave privata vive sul telefono (inevitabil
 | Cosa | Durata | Avviso | Cosa fare |
 |---|---|---|---|
 | Firma dell'app (Apple ID gratuito) | 7 giorni | notifica 2 giorni prima, il giorno prima, la mattina | `installa.sh` con l'iPhone collegato |
-| Collegamento con una banca | 180 giorni (alcune banche 90) | notifica 7 giorni prima, il giorno prima, il giorno stesso, poi ogni giorno | *Banche collegate* › scorri › **Rinnova** |
+| Collegamento con una banca | 180 giorni (alcune banche 90) | notifica 7 giorni prima, il giorno prima, il giorno stesso; poi un promemoria la mattina dopo, rinnovato a ogni apertura dell'app | *Banche collegate* › scorri › **Rinnova** |
 | Conti collegati nel Control Panel | non scadono | – | – |
 | Backup esportato | – | promemoria di backup | esportalo ogni tanto |
 
@@ -427,6 +495,7 @@ Bilancio/
   Features/
     Anno/ Mese/ Movimenti/ Consigli/     dashboard, elenchi, editor dei movimenti, consigli
     Scansione/                           scontrini: scanner, OCR, parser, Apple Intelligence, revisione
+    Archivio/                            archivio degli scontrini per negozio
     Investimenti/                        strumenti, PAC, prezzi (Yahoo), cambi (BCE)
     Banche/                              Enable Banking (API, JWT, PSU), sincronizzazione, import estratti, parser
     Conti/ Ricorrenti/ Categorie/        conti e contanti, ricorrenti, categorie e budget
@@ -453,19 +522,19 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Bil
   -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -derivedDataPath build/dd ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build
 ```
 
-Argomenti di avvio (solo nelle build di sviluppo), con `xcrun simctl launch booted it.bilanciopersonale.app.k7x2 <argomenti>`:
+Argomenti di avvio (nelle build di sviluppo; in quella installata sull'iPhone vale solo `-tab`), con `xcrun simctl launch booted it.bilanciopersonale.app.k7x2 <argomenti>`:
 
 | Argomento | Effetto |
 |---|---|
 | `-demo` | niente Face ID e niente richiesta notifiche; 12 mesi di dati di esempio se il database è vuoto |
 | `-tab N` | apre la scheda N (0 Anno … 4 Altro) |
-| `-verifica` | controlli automatici: giroconti, valute e costo del cambio, giro completo del backup, cifratura, inflazione, ISTAT |
+| `-verifica` | controlli automatici: abbinamenti e giroconti, valute e costo del cambio, investimenti, ricorrenze, giro completo del backup, cifratura, inflazione, ISTAT |
 | `-provaRipristino` | backup del database vero → copia cifrata → ripristino in sospeso (applicato al riavvio successivo) |
 | `-AppleLanguages "(en)"` | interfaccia in inglese |
 
 Controlli separati (dalla radice del progetto; il comando esatto è in testa a ogni file):
 `Features/Banche/ParserEstratto.swift` (estratti conto), `Features/Banche/EnableBanking.swift` (firma JWT),
-`Features/Ricorrenti/GeneratoreRicorrenze.swift`, `Features/Scansione/ParserScontrino.swift`,
+`Features/Scansione/ParserScontrino.swift`,
 `Features/Consigli/CalcoliConsigli.swift`, `Features/Investimenti/CalcoliInvestimenti.swift`.
 
 ### Insidie note
