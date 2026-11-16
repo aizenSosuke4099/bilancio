@@ -44,6 +44,9 @@ struct BackupView: View {
             Section("Stato") {
                 LabeledContent("Ultimo backup locale", value: Backup.ultimoBackup.map(descrivi) ?? String(localized: "mai"))
                 LabeledContent("Ultimo salvato fuori dall'iPhone", value: Backup.ultimoEsportato.map(descrivi) ?? String(localized: "mai"))
+                if let e = Backup.erroreAutomatico {
+                    Text("L'ultimo backup automatico non è riuscito: \(e)").font(.footnote).foregroundStyle(.red)
+                }
             }
 
             Section {
@@ -76,7 +79,7 @@ struct BackupView: View {
             } header: {
                 Text("Ripristino")
             } footer: {
-                Text("Sostituisce tutti i dati attuali con quelli del backup. I dati attuali vengono conservati in una copia di sicurezza.")
+                Text("Sostituisce tutti i dati attuali con quelli del backup. Prima i dati attuali vengono salvati come backup in questo elenco, così puoi tornare indietro.")
             }
         }
         .navigationTitle("Backup")
@@ -190,8 +193,7 @@ struct BackupView: View {
         guard let url = daRipristinare else { return }
         daRipristinare = nil
         do {
-            try Backup.preparaRipristino(da: url)
-            messaggio = String(localized: "Ripristino pronto. Chiudi e riapri l'app per completare.")
+            pronto(try Backup.preparaRipristino(da: url))
         } catch CifraturaBackup.Errore.serveLaPassword {
             cifratoDaRipristinare = url
         } catch {
@@ -200,14 +202,23 @@ struct BackupView: View {
         aggiorna()
     }
 
+    /// Ripristino preparato: i dati di adesso diventano un backup normale dell'elenco (se era il backup sbagliato si
+    /// torna indietro da lì), poi si dice cosa fare.
+    private func pronto(_ fotoMancanti: Int) {
+        try? context.save()
+        if ((try? context.fetchCount(FetchDescriptor<Movimento>())) ?? 0) > 0 { _ = try? Backup.crea(in: context) }
+        messaggio = fotoMancanti == 0
+            ? String(localized: "Ripristino pronto. Chiudi e riapri l'app per completare.")
+            : String(localized: "Ripristino pronto, ma nel backup mancano \(fotoMancanti) foto di scontrini. Chiudi e riapri l'app per completare.")
+    }
+
     private func ripristinaCifrato() {
         guard let url = cifratoDaRipristinare else { return }
         let password = passwordRipristino
         cifratoDaRipristinare = nil
         passwordRipristino = ""
         do {
-            try Backup.preparaRipristino(da: url, password: password)
-            messaggio = String(localized: "Ripristino pronto. Chiudi e riapri l'app per completare.")
+            pronto(try Backup.preparaRipristino(da: url, password: password))
         } catch {
             messaggio = error.localizedDescription
         }

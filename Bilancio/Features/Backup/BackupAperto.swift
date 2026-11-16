@@ -188,7 +188,7 @@ enum BackupAperto {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         encoder.dateEncodingStrategy = .iso8601
-        try encoder.encode(a).write(to: cartella.appending(path: fileDati))
+        try encoder.encode(a).write(to: cartella.appending(path: fileDati), options: .atomic)
         try Data(Backup.csvMovimenti(in: ctx).utf8).write(to: cartella.appending(path: "movimenti.csv"))
         try Data(leggimi.utf8).write(to: cartella.appending(path: "LEGGIMI.txt"))
     }
@@ -209,7 +209,10 @@ enum BackupAperto {
     }
 
     /// Ricostruisce tutti i dati di `cartella` dentro `ctx` (che dovrebbe essere vuoto) e salva.
-    static func leggi(da cartella: URL, in ctx: ModelContext) throws {
+    /// Restituisce quante foto elencate nel JSON non c'erano nella cartella (lo scontrino resta senza immagine).
+    @discardableResult
+    static func leggi(da cartella: URL, in ctx: ModelContext) throws -> Int {
+        var fotoMancanti = 0
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let a = try decoder.decode(Archivio.self, from: Data(contentsOf: cartella.appending(path: fileDati)))
@@ -259,7 +262,11 @@ enum BackupAperto {
         for j in a.scontrini {
             let s = Scontrino(negozio: j.negozio, data: j.data, totale: j.totale)
             s.indirizzo = j.indirizzo; s.partitaIva = j.partitaIva; s.testoOCR = j.testoOCR; s.creatoIl = j.creatoIl
-            if let f = j.foto { s.immagine = try Data(contentsOf: cartella.appending(path: cartellaFoto).appending(path: f)) }
+            if let f = j.foto {
+                // solo il nome del file: un percorso scritto nel JSON non deve far leggere altro
+                let file = cartella.appending(path: cartellaFoto).appending(path: (f as NSString).lastPathComponent)
+                if let dati = try? Data(contentsOf: file) { s.immagine = dati } else { fotoMancanti += 1 }
+            }
             ctx.insert(s); s.movimento = j.movimento.flatMap { movimenti[$0] }
             scontrini[j.id] = s
         }
@@ -314,6 +321,7 @@ enum BackupAperto {
             ctx.insert(p); p.conto = j.conto.flatMap { conti[$0] }
         }
         try ctx.save()
+        return fotoMancanti
     }
 
     // MARK: Descrizione del formato

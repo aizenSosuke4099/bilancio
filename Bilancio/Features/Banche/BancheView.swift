@@ -12,7 +12,7 @@ struct BancheView: View {
     @Query(sort: \ConnessioneBanca.scadenza) private var connessioni: [ConnessioneBanca]
     @Query(sort: \Conto.ordine) private var conti: [Conto]
     /// Pagina ponte https (Enable Banking non accetta altri schemi) che rimanda a bilancio://callback: il login si fa
-    /// nel browser di sistema, che passa bene alle app delle banche (es. Trade Republic). Vedi docs/callback/index.html.
+    /// nel browser di sistema, che passa bene alle app delle banche (quelle che confermano l'accesso nella propria app). Vedi docs/callback/index.html.
     @AppStorage("banche.redirectURL") private var redirectURL = BancheView.redirectPredefinito
     static let redirectPredefinito = "https://aizensosuke4099.github.io/bilancio/callback/"
 

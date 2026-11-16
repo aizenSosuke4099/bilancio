@@ -112,7 +112,7 @@ enum Prezzi {
         if let d = await scarica(urlGrafico(ticker, ["range": "5y", "interval": "1mo"])) {
             let c = CalcoliInvestimenti.mensili(CalcoliInvestimenti.chiusure(daGrafico: d))
             if !c.isEmpty {
-                try? JSONEncoder().encode(c).write(to: file)
+                try? JSONEncoder().encode(c).write(to: file, options: .completeFileProtection)   // il nome del file dice cosa possiedi
                 return c
             }
         }
@@ -162,7 +162,7 @@ enum Prezzi {
         var richiesta = URLRequest(url: url, timeoutInterval: 10)
         // User-Agent generico: con quello completo di un browser Yahoo risponde 429 (verificato con curl)
         richiesta.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        guard let (dati, risposta) = try? await URLSession.shared.data(for: richiesta),
+        guard let (dati, risposta) = try? await URLSession.senzaTracce.data(for: richiesta),
               (risposta as? HTTPURLResponse)?.statusCode == 200 else { return nil }
         return dati
     }

@@ -233,7 +233,7 @@ enum EnableBanking {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = try JSONSerialization.data(withJSONObject: corpo)
         }
-        let (dati, risposta) = try await URLSession.shared.data(for: req)
+        let (dati, risposta) = try await URLSession.senzaTracce.data(for: req)
         let stato = (risposta as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(stato) else {
             let e = try? JSONDecoder().decode(RispostaErrore.self, from: dati)
@@ -347,9 +347,18 @@ enum EnableBanking {
 // MARK: - Credenziali nel Portachiavi
 
 /// Application ID e chiave privata stanno nel Portachiavi (mai in UserDefaults),
-/// leggibili anche in background dopo il primo sblocco, mai copiati su altri dispositivi.
+/// leggibili solo a telefono sbloccato (l'app non lavora in background), mai copiati su altri dispositivi.
 enum CredenzialiEnableBanking {
     private static let servizio = "bilancio.enablebanking"
+    private static let accesso = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+
+    /// Gli elementi salvati quando l'app lavorava in background restavano leggibili a telefono bloccato:
+    /// qui si restringono (aggiornamento sul posto, senza cancellare e riscrivere la chiave).
+    static func restringiAccesso() {
+        for account in ["applicationId", "chiavePrivata"] {
+            SecItemUpdate(base(account) as CFDictionary, [kSecAttrAccessible: accesso] as CFDictionary)
+        }
+    }
 
     static var applicationId: String? {
         get { leggi("applicationId") }
@@ -392,7 +401,7 @@ enum CredenzialiEnableBanking {
         guard let valore, !valore.isEmpty else { return }
         var q = base(account)
         q[kSecValueData] = Data(valore.utf8)
-        q[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        q[kSecAttrAccessible] = accesso
         SecItemAdd(q as CFDictionary, nil)
     }
 }

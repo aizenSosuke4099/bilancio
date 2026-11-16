@@ -3562,6 +3562,16 @@
         }
       }
     },
+    "Il database di questo backup è rovinato e non si apre.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This backup's database is damaged and won't open."
+          }
+        }
+      }
+    },
     "Il file bilancio.json non è un backup di Bilancio leggibile da questa versione dell'app.": {
       "localizations": {
         "en": {
@@ -4054,6 +4064,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This can't be undone."
+          }
+        }
+      }
+    },
+    "L'ultimo backup automatico non è riuscito: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The last automatic backup failed: %@"
           }
         }
       }
@@ -6555,6 +6575,16 @@
         }
       }
     },
+    "Ripristino pronto, ma nel backup mancano %lld foto di scontrini. Chiudi e riapri l'app per completare.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore ready, but %lld receipt photos are missing from the backup. Close and reopen the app to finish."
+          }
+        }
+      }
+    },
     "Ripristino pronto. Chiudi e riapri l'app per completare.": {
       "localizations": {
         "en": {
@@ -7148,12 +7178,12 @@
         }
       }
     },
-    "Sostituisce tutti i dati attuali con quelli del backup. I dati attuali vengono conservati in una copia di sicurezza.": {
+    "Sostituisce tutti i dati attuali con quelli del backup. Prima i dati attuali vengono salvati come backup in questo elenco, così puoi tornare indietro.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Replaces all current data with the backup's. The current data is kept in a safety copy."
+            "value": "Replaces all current data with the backup's. Your current data is first saved as a backup in this list, so you can go back."
           }
         }
       }

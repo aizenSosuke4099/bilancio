@@ -74,7 +74,8 @@ enum CifraturaBackup {
     nonisolated static func decifra(_ sorgente: URL, in destinazione: URL, password: String) throws {
         let fm = FileManager.default
         guard let p = try? JSONDecoder().decode(Parametri.self, from: Data(contentsOf: sorgente.appending(path: fileParametri))),
-              p.formato == "bilancio-backup-cifrato", p.versione == 1, let sale = Data(base64Encoded: p.sale),
+              p.formato == "bilancio-backup-cifrato", p.versione == 1, (1_000...10_000_000).contains(p.iterazioni),
+              let sale = Data(base64Encoded: p.sale),
               let verifica = Data(base64Encoded: p.verifica) else { throw Errore.formato }
         let k = chiave(password: password, sale: sale, iterazioni: p.iterazioni)
         guard (try? AES.GCM.open(AES.GCM.SealedBox(combined: verifica), using: k)) == Data("bilancio".utf8) else {

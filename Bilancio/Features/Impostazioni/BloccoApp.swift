@@ -16,7 +16,7 @@ struct BloccoApp<Contenuto: View>: View {
     @State private var daChiedere = true
     @State private var errore: String?
 
-    private var demo: Bool { ProcessInfo.processInfo.arguments.contains("-demo") }
+    private var demo: Bool { Avvio.demo }
     private var bloccata: Bool { bloccoAttivo && !demo && !sbloccata }
 
     var body: some View {

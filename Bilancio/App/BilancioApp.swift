@@ -39,6 +39,16 @@ struct BilancioApp: App {
 
 /// Lavori da fare all'apertura: dati iniziali, ricorrenti, prezzi, PAC, banche, patrimonio.
 enum Avvio {
+    /// Argomento di avvio `-demo` (niente blocco, dati finti a database vuoto): solo nelle build di sviluppo.
+    /// In Release nessun argomento di avvio può togliere il blocco o scrivere dati demo nel database vero.
+    static var demo: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-demo")
+        #else
+        false
+        #endif
+    }
+
     private static var inCorso = false
     private static var ultimo: Date?
 
@@ -54,8 +64,9 @@ enum Avvio {
         Sincronizzazione.correggiNomiConti(in: ctx)
         Abbinamento.scontriniDaVerificare(in: ctx)
         CredenzialiEnableBanking.eliminaCopieChiave()
+        CredenzialiEnableBanking.restringiAccesso()
         GeneratoreRicorrenze.genera(in: ctx)
-        if !ProcessInfo.processInfo.arguments.contains("-demo") { ScadenzaFirma.programmaNotifiche() }  // in demo il permesso coprirebbe lo schermo
+        if !demo { ScadenzaFirma.programmaNotifiche() }  // in demo il permesso coprirebbe lo schermo
         await Prezzi.aggiornaSeVecchi(in: ctx)
         await PAC.generaSeServe(in: ctx)
         await Sincronizzazione.sincronizzaSeServe(in: ctx)

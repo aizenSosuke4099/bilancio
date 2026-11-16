@@ -82,5 +82,7 @@ func leggiNumero(_ testo: String) -> Double? {
     default:
         break
     }
-    return Double(s)
+    // "inf", "nan", "1e400": niente valori non finiti nei conti (il backup in JSON non li accetterebbe)
+    guard let v = Double(s), v.isFinite else { return nil }
+    return v
 }

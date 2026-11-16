@@ -1,6 +1,12 @@
 import Foundation
 import SwiftData
 
+extension URLSession {
+    /// Per le richieste con dati personali (banca, strumenti posseduti): niente cache né cookie su disco,
+    /// dove resterebbero leggibili anche a telefono bloccato.
+    nonisolated static let senzaTracce = URLSession(configuration: .ephemeral)
+}
+
 /// Database locale. La cartella `cartella` è ciò che il backup salva e ripristina.
 enum Persistenza {
     static let schema = Schema([

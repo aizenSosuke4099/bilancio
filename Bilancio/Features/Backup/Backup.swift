@@ -17,6 +17,8 @@ enum Backup {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appending(path: "Backup", directoryHint: .isDirectory)
     }
     private static let nomeStore = "Bilancio.store"
+    private static let prefissoInCorso = ".in-corso-"
+    private static var inPreparazione: URL { supporto.appending(path: "RipristinoInPreparazione", directoryHint: .isDirectory) }
 
     /// "2026-11-14-1030": ordinabile come testo.
     static func timbro(_ data: Date) -> String {
@@ -47,13 +49,20 @@ enum Backup {
     static func crea(in context: ModelContext) throws -> URL {
         let fm = FileManager.default
         try proteggiCartellaBackup()
-        let destinazione = cartellaBackup.appending(path: "Bilancio-" + timbro(Date()), directoryHint: .isDirectory)
-        if fm.fileExists(atPath: destinazione.path) { try fm.removeItem(at: destinazione) }
-        try fm.createDirectory(at: destinazione, withIntermediateDirectories: true)
+        // Si scrive in una cartella provvisoria (che `elenco` non mostra) e la si rinomina alla fine: un backup
+        // interrotto a metà (app chiusa mentre va in background) non compare mai tra quelli buoni.
+        let figli = (try? fm.contentsOfDirectory(at: cartellaBackup, includingPropertiesForKeys: nil)) ?? []
+        for avanzo in figli where avanzo.lastPathComponent.hasPrefix(prefissoInCorso) { try? fm.removeItem(at: avanzo) }
+        let nome = "Bilancio-" + timbro(Date())
+        let provvisoria = cartellaBackup.appending(path: prefissoInCorso + nome, directoryHint: .isDirectory)
+        let destinazione = cartellaBackup.appending(path: nome, directoryHint: .isDirectory)
+        try fm.createDirectory(at: provvisoria, withIntermediateDirectories: true)
         do {
-            try BackupAperto.scrivi(context, in: destinazione)
+            try BackupAperto.scrivi(context, in: provvisoria)
+            if fm.fileExists(atPath: destinazione.path) { try fm.removeItem(at: destinazione) }
+            try fm.moveItem(at: provvisoria, to: destinazione)
         } catch {
-            try? fm.removeItem(at: destinazione)   // niente backup a metà nell'elenco
+            try? fm.removeItem(at: provvisoria)
             throw error
         }
         UserDefaults.standard.set(Date(), forKey: "backup.ultimo")
@@ -75,14 +84,30 @@ enum Backup {
     static func automaticoSeServe(in context: ModelContext) {
         if let u = ultimoBackup, Date().timeIntervalSince(u) < 7 * 86_400 { return }
         guard ((try? context.fetchCount(FetchDescriptor<Movimento>())) ?? 0) > 0 else { return }
-        _ = try? crea(in: context)
+        // l'app sta andando in background: si chiede a iOS il tempo per finire di scrivere
+        let compito = UIApplication.shared.beginBackgroundTask(withName: "backup")
+        defer { UIApplication.shared.endBackgroundTask(compito) }
+        do {
+            try crea(in: context)
+            UserDefaults.standard.removeObject(forKey: "backup.erroreAutomatico")
+        } catch {
+            UserDefaults.standard.set(error.localizedDescription, forKey: "backup.erroreAutomatico")
+        }
     }
+
+    /// Perché l'ultimo backup automatico non è riuscito (nil = tutto bene).
+    static var erroreAutomatico: String? { UserDefaults.standard.string(forKey: "backup.erroreAutomatico") }
 
     /// Backup locali, dal più recente.
     static func elenco() -> [URL] {
         let figli = (try? FileManager.default.contentsOfDirectory(at: cartellaBackup, includingPropertiesForKeys: nil)) ?? []
-        return figli.filter { $0.lastPathComponent.hasPrefix("Bilancio-") }
-            .sorted { $0.lastPathComponent > $1.lastPathComponent }
+        // solo le cartelle che sono davvero un backup (formato aperto, vecchio formato o cifrato)
+        return figli.filter { c in
+            c.lastPathComponent.hasPrefix("Bilancio-") && [BackupAperto.fileDati, nomeStore, CifraturaBackup.fileParametri].contains {
+                FileManager.default.fileExists(atPath: c.appending(path: $0).path)
+            }
+        }
+        .sorted { $0.lastPathComponent > $1.lastPathComponent }
     }
 
     /// Dimensione totale di una cartella (byte), anche dei file nascosti.
@@ -98,19 +123,27 @@ enum Backup {
     // MARK: Ripristino
 
     enum ErroreBackup: LocalizedError {
-        case nonValido
-        var errorDescription: String? { String(localized: "La cartella scelta non è un backup di Bilancio (manca \(BackupAperto.fileDati)).") }
+        case nonValido, rovinato
+        var errorDescription: String? {
+            switch self {
+            case .nonValido: String(localized: "La cartella scelta non è un backup di Bilancio (manca \(BackupAperto.fileDati)).")
+            case .rovinato: String(localized: "Il database di questo backup è rovinato e non si apre.")
+            }
+        }
     }
 
     /// Prepara in RipristinoInSospeso il database ricostruito dal backup (anche da iCloud Drive): verrà applicato alla prossima apertura.
     /// Un backup protetto da password senza `password` lancia `CifraturaBackup.Errore.serveLaPassword`.
-    static func preparaRipristino(da sorgente: URL, password: String? = nil) throws {
+    /// Restituisce quante foto di scontrini mancavano nel backup (i dati si ripristinano lo stesso).
+    @discardableResult
+    static func preparaRipristino(da sorgente: URL, password: String? = nil) throws -> Int {
         let accesso = sorgente.startAccessingSecurityScopedResource()
         defer { if accesso { sorgente.stopAccessingSecurityScopedResource() } }
 
         // la lettura coordinata scarica da iCloud i file non ancora presenti sul telefono
         var erroreCoordinatore: NSError?
         var erroreCopia: Error?
+        var fotoMancanti = 0
         NSFileCoordinator().coordinate(readingItemAt: sorgente, options: [], error: &erroreCoordinatore) { originale in
             let fm = FileManager.default
             var decifrata: URL?
@@ -124,30 +157,36 @@ enum Backup {
                     try CifraturaBackup.decifra(originale, in: t, password: password)
                     url = t
                 }
-                if fm.fileExists(atPath: inSospeso.path) { try fm.removeItem(at: inSospeso) }
+                // Si costruisce in una cartella a parte e la si rinomina solo alla fine: se l'app viene chiusa a metà
+                // non resta un database vuoto o incompleto pronto a prendere il posto di quello vero.
+                try? fm.removeItem(at: inPreparazione)
+                defer { try? fm.removeItem(at: inPreparazione) }
                 try fm.createDirectory(at: supporto, withIntermediateDirectories: true)
                 if fm.fileExists(atPath: url.appending(path: BackupAperto.fileDati).path) {
                     // formato aperto: database nuovo costruito da bilancio.json e foto/
-                    try fm.createDirectory(at: inSospeso, withIntermediateDirectories: true)
-                    do {
-                        let config = ModelConfiguration(schema: Persistenza.schema, url: inSospeso.appending(path: nomeStore))
-                        let contenitore = try ModelContainer(for: Persistenza.schema, configurations: config)
-                        try BackupAperto.leggi(da: url, in: ModelContext(contenitore))
-                    } catch {
-                        try? fm.removeItem(at: inSospeso)
-                        throw error
-                    }
+                    try fm.createDirectory(at: inPreparazione, withIntermediateDirectories: true)
+                    fotoMancanti = try { try BackupAperto.leggi(da: url, in: ModelContext(try apri(inPreparazione))) }()
                 } else if fm.fileExists(atPath: url.appending(path: nomeStore).path) {
-                    // vecchio formato: copia della cartella del database
-                    try fm.copyItem(at: url, to: inSospeso)
+                    // vecchio formato: copia della cartella del database. Deve aprirsi: un database rovinato messo
+                    // al posto di quello vero bloccherebbe l'app a ogni avvio.
+                    try fm.copyItem(at: url, to: inPreparazione)
+                    do { _ = try apri(inPreparazione) } catch { throw ErroreBackup.rovinato }
                 } else {
                     throw ErroreBackup.nonValido
                 }
+                if fm.fileExists(atPath: inSospeso.path) { try fm.removeItem(at: inSospeso) }
+                try fm.moveItem(at: inPreparazione, to: inSospeso)
             } catch {
                 erroreCopia = error
             }
         }
         if let e = erroreCoordinatore ?? erroreCopia { throw e }
+        return fotoMancanti
+    }
+
+    private static func apri(_ cartella: URL) throws -> ModelContainer {
+        let config = ModelConfiguration(schema: Persistenza.schema, url: cartella.appending(path: nomeStore))
+        return try ModelContainer(for: Persistenza.schema, configurations: config)
     }
 
     static var ripristinoInSospeso: Bool { FileManager.default.fileExists(atPath: inSospeso.path) }
@@ -166,6 +205,14 @@ enum Backup {
                 try fm.moveItem(at: cartellaDatabase, to: supporto.appending(path: "Bilancio-prima-del-ripristino-\(timbro(Date()))", directoryHint: .isDirectory))
             }
             try fm.moveItem(at: inSospeso, to: cartellaDatabase)
+            // Le sistemazioni "una volta sola" che si possono ripetere senza danni devono rigirare sui dati ripristinati
+            // (un backup vecchio può non avere le categorie nuove). Non quella degli scontrini: annullerebbe conferme fatte a mano.
+            for chiave in ["categorie.commissioniBancarie", "conti.nomiDallaBanca"] { UserDefaults.standard.removeObject(forKey: chiave) }
+            // i dati di prima sono già un backup dell'elenco (vedi BackupView): di queste copie bastano le ultime due
+            let copie = ((try? fm.contentsOfDirectory(at: supporto, includingPropertiesForKeys: nil)) ?? [])
+                .filter { $0.lastPathComponent.hasPrefix("Bilancio-prima-del-ripristino-") }
+                .sorted { $0.lastPathComponent > $1.lastPathComponent }
+            for vecchia in copie.dropFirst(2) { try? fm.removeItem(at: vecchia) }
         } catch {
             // se lo spostamento fallisce il database attuale resta dov'è (o viene ricreato vuoto): niente crash
             print("Ripristino non applicato: \(error)")
