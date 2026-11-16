@@ -245,7 +245,7 @@ non è nel PSD2). Per quelle usa gli [estratti conto](#estratti-conto-csv-e-pdf)
    - Il **cerchio** a sinistra include o esclude la riga; scorrendo la riga puoi **invertire il segno** (PDF senza dare/avere).
 4. **Conferma e importa**: i movimenti entrano **già confermati**.
 
-Se il file ha una colonna **commissione** (es. "Fee" nei CSV di Revolut), ogni commissione diventa un movimento a parte in
+Se il file ha una colonna **commissione** (es. "Fee" negli export di alcune banche online), ogni commissione diventa un movimento a parte in
 *Commissioni bancarie*.
 
 Ogni quanto: una volta al mese per le carte e i conti non collegabili, dopo l'arrivo dell'estratto.

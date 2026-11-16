@@ -88,6 +88,7 @@ struct ImportaEstrattoView: View {
         nomeFile = url.deletingPathExtension().lastPathComponent
         righe = []
         profilo = nil
+        contoID = nil   // il conto del file precedente non vale per questo: lo dice il profilo o lo sceglie l'utente
         fase = .lettura(String(localized: "Leggo \(url.lastPathComponent)…"))
         let tipo = UTType(filenameExtension: url.pathExtension.lowercased())
         if tipo?.conforms(to: .pdf) == true {
@@ -116,7 +117,8 @@ struct ImportaEstrattoView: View {
             mappatura = mappaturaDa(p, separatore: separatore)
             contoID = p.conto?.persistentModelID
             let movimenti = ParserEstratto.applica(mappatura, righe: righe)
-            if !movimenti.isEmpty { return mostraAnteprima(movimenti) }
+            // se qualche riga non si legge più (la banca ha cambiato formato) si ripassa dalle colonne, dove lo si vede
+            if !movimenti.isEmpty, ParserEstratto.righeNonLette(mappatura, righe: righe) == 0 { return mostraAnteprima(movimenti) }
         }
         mappatura = proposta
         fase = .mappatura
@@ -185,7 +187,13 @@ struct ImportaEstrattoView: View {
                         Text(r.importo.euro).monospacedDigit().foregroundStyle(r.importo > 0 ? Tinta.entrate : .primary)
                     }
                 }
-            } header: { Text("Prova: \(prova.count) movimenti letti") }
+            } header: { Text("Prova: \(prova.count) movimenti letti") } footer: {
+                let nonLette = ParserEstratto.righeNonLette(mappatura, righe: righe)
+                if nonLette > 0 {
+                    Text("Attenzione: \(nonLette) righe hanno una data o un importo che non riesco a leggere. Controlla il formato della data e le colonne.")
+                        .foregroundStyle(.orange)
+                }
+            }
             Section {
                 Button("Continua") { salvaProfilo(); mostraAnteprima(prova) }
                     .bold()
@@ -226,34 +234,57 @@ struct ImportaEstrattoView: View {
 
     private func mostraAnteprima(_ movimenti: [ParserEstratto.Riga]) {
         lette = movimenti
+        voci = []          // un altro file, o un'altra lettura delle colonne: le correzioni di prima non valgono più
+        inModifica = nil
         ricalcola()
         fase = .anteprima
     }
 
-    /// Classifica le righe e segna i duplicati (stesso idEsterno, movimento già esistente o già arrivato dalla banca).
+    /// Classifica le righe e segna i duplicati (stesso idEsterno, già eliminata, movimento già esistente o già arrivato dalla banca).
     private func ricalcola() {
         let ids = ParserEstratto.idEsterni(lette)
         let precedenti = voci
+        let eliminati = Sincronizzazione.eliminati
+        // un movimento già presente vale per una riga sola: due acquisti uguali nello stesso giorno restano due
+        var usati: Set<PersistentIdentifier> = []
         voci = zip(lette, ids).enumerated().map { i, coppia in
             let (r, id) = coppia
             let idOpzionale: String? = id
-            let giaImportato = ((try? context.fetchCount(FetchDescriptor<Movimento>(predicate: #Predicate { $0.idEsterno == idOpzionale }))) ?? 0) > 0
-            let esistente = Abbinamento.movimentoEsistentePer(importo: r.importo, data: r.data, conto: conto, in: context)
-            let daBanca = conto.map { c in
-                Contabilita.movimenti(da: r.data.aggiungendo(giorni: -1), a: r.data.aggiungendo(giorni: 2), in: context).contains {
-                    $0.idEsterno != nil && $0.conto?.persistentModelID == c.persistentModelID && abs($0.importo - r.importo) < 0.011
+            let giaImportato = eliminati.contains(id)
+                || ((try? context.fetchCount(FetchDescriptor<Movimento>(predicate: #Predicate { $0.idEsterno == idOpzionale }))) ?? 0) > 0
+            var esistente: Movimento?
+            var daBanca = false
+            if !giaImportato {
+                esistente = Abbinamento.movimentoEsistentePer(importo: r.importo, data: r.data, conto: conto, escludendo: usati, in: context)
+                if let esistente {
+                    usati.insert(esistente.persistentModelID)
+                } else if let c = conto, let b = Contabilita.movimenti(da: r.data.aggiungendo(giorni: -1), a: r.data.aggiungendo(giorni: 2), in: context).first(where: {
+                    $0.idEsterno != nil && !usati.contains($0.persistentModelID) && $0.conto?.persistentModelID == c.persistentModelID
+                        && abs(Abbinamento.nelConto($0) - r.importo) < 0.011
+                }) {
+                    usati.insert(b.persistentModelID)
+                    daBanca = true
                 }
-            } ?? false
-            let s = Classificatore.suggerisciBanca(descrizione: r.descrizione, importo: r.importo, in: context)
+            }
             let duplicato = giaImportato || esistente != nil || daBanca
-            // cambiando conto si ricalcolano i duplicati, ma le correzioni dell'utente restano
-            if precedenti.indices.contains(i), precedenti[i].modificata {
-                var v = precedenti[i]
+            let precedente = precedenti.indices.contains(i) && precedenti[i].idEsterno == id ? precedenti[i] : nil
+            // cambiando conto si ricalcolano i duplicati, ma le correzioni e le scelte dell'utente restano
+            if var v = precedente, v.modificata {
                 v.duplicato = duplicato
                 v.esistente = esistente
+                if duplicato { v.selezionata = false }
                 return v
             }
-            return VoceImport(riga: r, idEsterno: id, suggerimento: s, duplicato: duplicato, esistente: esistente, selezionata: !duplicato)
+            var s = Classificatore.suggerisciBanca(descrizione: r.descrizione, importo: r.importo, in: context)
+            // l'altra metà è già su un altro conto (pagamento della carta, ricarica): è un giroconto, e lo si vede già qui
+            if !s.appreso, Abbinamento.generico(tipo: s.tipo, categoria: s.categoria), let c = conto,
+               Abbinamento.controparte(importo: Contabilita.inEuro(r.importo, valuta: c.valuta), valuta: c.valuta == "EUR" ? nil : c.valuta,
+                                       data: r.data, conto: c, in: context) != nil {
+                s.tipo = .giroconto
+                s.categoria = nil
+            }
+            return VoceImport(riga: r, idEsterno: id, suggerimento: s, duplicato: duplicato, esistente: esistente,
+                              selezionata: !duplicato && (precedente?.selezionata ?? true))
         }
     }
 
@@ -278,7 +309,7 @@ struct ImportaEstrattoView: View {
                                 .foregroundStyle(v.selezionata ? Color.accentColor : .secondary)
                         }
                         .buttonStyle(.plain)
-                        Button { inModifica = v.id } label: { RigaVoceImport(voce: v) }
+                        Button { inModifica = v.id } label: { RigaVoceImport(voce: v, valuta: conto?.valuta ?? "EUR") }
                             .buttonStyle(.plain)
                     }
                     .swipeActions {
@@ -311,13 +342,13 @@ struct ImportaEstrattoView: View {
         }
     }
 
-    /// Inverte il segno di una riga (PDF senza Dare/Avere): voci e lette hanno gli stessi indici.
+    /// Inverte il segno di una riga (PDF senza Dare/Avere). È una correzione: resta anche cambiando conto, e l'id
+    /// resta quello della riga del file, così reimportandolo la riga viene riconosciuta.
     private func inverti(_ id: UUID) {
         guard let i = voci.firstIndex(where: { $0.id == id }) else { return }
-        lette[i].importo = -lette[i].importo
-        voci[i].riga = lette[i]
-        voci[i].idEsterno = ParserEstratto.idEsterni(lette)[i]
-        voci[i].suggerimento = Classificatore.suggerisciBanca(descrizione: lette[i].descrizione, importo: lette[i].importo, in: context)
+        voci[i].riga.importo = -voci[i].riga.importo
+        voci[i].suggerimento = Classificatore.suggerisciBanca(descrizione: voci[i].riga.descrizione, importo: voci[i].riga.importo, in: context)
+        voci[i].modificata = true
     }
 
     /// Chiude la correzione e la estende alle righe con la stessa descrizione non ancora toccate.
@@ -395,7 +426,15 @@ fileprivate struct ModificaVoceImport: View {
     @State private var importoTesto = ""
 
     private var entrata: Binding<Bool> {
-        Binding(get: { voce.riga.importo > 0 }, set: { voce.riga.importo = $0 ? abs(voce.riga.importo) : -abs(voce.riga.importo); voce.modificata = true })
+        Binding(get: { voce.riga.importo > 0 }, set: { entra in
+            voce.riga.importo = entra ? abs(voce.riga.importo) : -abs(voce.riga.importo)
+            // spesa ed entrata seguono il segno (per un rimborso, cioè una spesa col segno più, si rimette il Tipo a mano)
+            if (entra && voce.suggerimento.tipo == .spesa) || (!entra && voce.suggerimento.tipo == .entrata) {
+                voce.suggerimento.tipo = entra ? .entrata : .spesa
+                voce.suggerimento.categoria = nil
+            }
+            voce.modificata = true
+        })
     }
 
     var body: some View {
@@ -435,7 +474,9 @@ fileprivate struct ModificaVoceImport: View {
                         .monospacedDigit()
                         .onChange(of: importoTesto) { _, t in
                             guard let v = leggiNumero(t), v != 0, v.isFinite else { return }
-                            voce.riga.importo = (voce.riga.importo > 0 ? abs(v) : -abs(v)).centesimi
+                            let nuovo = (voce.riga.importo > 0 ? abs(v) : -abs(v)).centesimi
+                            guard nuovo != voce.riga.importo else { return }   // aprire la riga non è una correzione
+                            voce.riga.importo = nuovo
                             voce.modificata = true
                         }
                 }
@@ -454,6 +495,7 @@ fileprivate struct ModificaVoceImport: View {
 
 fileprivate struct RigaVoceImport: View {
     let voce: VoceImport
+    var valuta = "EUR"
 
     var body: some View {
         HStack(spacing: 10) {
@@ -463,7 +505,7 @@ fileprivate struct RigaVoceImport: View {
                 Text(dettagli).font(.caption).foregroundStyle(voce.duplicato ? .orange : .secondary).lineLimit(1)
             }
             Spacer()
-            Text(voce.riga.importo.euro).font(.callout.monospacedDigit())
+            Text(voce.riga.importo.valuta(valuta)).font(.callout.monospacedDigit())
                 .foregroundStyle(voce.riga.importo > 0 ? Tinta.entrate : .primary)
             if voce.modificata { Image(systemName: "pencil.circle.fill").foregroundStyle(.orange) }
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)

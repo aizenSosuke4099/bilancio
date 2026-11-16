@@ -122,7 +122,7 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 ### Commissioni, costo del cambio, inflazione con ISTAT automatico (15/11 sera)
 - Categoria "Commissioni bancarie" (bonifici, canoni, fee, spread, interessi passivi); "Tasse e commissioni" diventa "Tasse e imposte".
   Per chi ha già l'app: `DatiIniziali.aggiornaCategorie` (una volta sola, flag `categorie.commissioniBancarie`).
-- CSV con colonna commissione (Revolut "Fee"): la commissione diventa un movimento a parte "Commissione: …".
+- CSV con colonna commissione ("Fee"): la commissione diventa un movimento a parte "Commissione: …".
 - Giroconto tra valute diverse: la differenza (spread + costi nel tasso) diventa una spesa senza conto in Commissioni bancarie,
   `idEsterno = "costo-cambio:<id del movimento in valuta>"`. `Contabilita.applicaCambiStorici` (all'apertura) ricalcola i movimenti
   in valuta col cambio BCE del loro giorno (`cambioStorico`) e aggiorna il costo.

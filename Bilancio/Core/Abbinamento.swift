@@ -95,9 +95,11 @@ enum Abbinamento {
 
     /// Classificato solo dal segno (nessuna parola chiave, nessuna regola imparata): l'unico caso in cui un'entrata o una
     /// spesa può diventare giroconto perché sull'altro conto c'è la cifra opposta. Uno stipendio e un affitto uguali no.
-    static func generico(_ m: Movimento) -> Bool {
-        guard m.tipo == .spesa || m.tipo == .entrata else { return false }   // un investimento riconosciuto resta tale
-        return m.categoria == nil || ["Altro", "Altre entrate"].contains { DatiIniziali.corrisponde(m.categoria?.nome, a: $0) }
+    static func generico(_ m: Movimento) -> Bool { generico(tipo: m.tipo, categoria: m.categoria) }
+
+    static func generico(tipo: TipoMovimento, categoria: Categoria?) -> Bool {
+        guard tipo == .spesa || tipo == .entrata else { return false }   // un investimento riconosciuto resta tale
+        return categoria == nil || ["Altro", "Altre entrate"].contains { DatiIniziali.corrisponde(categoria?.nome, a: $0) }
     }
 
     /// L'altra metà di un possibile giroconto: lo stesso importo (in euro) con segno opposto su un ALTRO conto entro

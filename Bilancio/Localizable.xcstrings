@@ -1208,6 +1208,16 @@
         }
       }
     },
+    "Attenzione: %lld righe hanno una data o un importo che non riesco a leggere. Controlla il formato della data e le colonne.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warning: %lld rows have a date or an amount I can't read. Check the date format and the columns."
+          }
+        }
+      }
+    },
     "Attiva": {
       "localizations": {
         "en": {

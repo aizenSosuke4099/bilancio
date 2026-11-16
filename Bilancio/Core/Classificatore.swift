@@ -27,7 +27,9 @@ enum Classificatore {
     /// Chiave per descrizioni bancarie: toglie le parole con cifre (date, numeri carta, id) che cambiano ogni volta.
     static func chiaveBanca(_ s: String) -> String {
         let parole = normalizza(s).split(separator: " ").filter { p in !p.contains(where: \.isNumber) }
-        let rumore: Set<String> = ["pagamento", "pagam", "pos", "carta", "presso", "del", "ore", "op", "operazione", "acquisto", "pag", "debit", "card", "payment", "to", "da", "a", "di", "il", "in", "su", "eur", "addebito", "sdd", "favore", "con", "bancomat", "contactless", "apple", "pay", "nfc"]
+        let rumore: Set<String> = ["pagamento", "pagam", "pos", "carta", "presso", "del", "ore", "op", "operazione", "acquisto", "pag", "debit", "card", "payment", "to", "da", "a", "di", "il", "in", "su", "eur", "addebito", "sdd", "favore", "con", "bancomat", "contactless", "apple", "pay", "nfc",
+                                   // estratti in tedesco: "Kauf/Dienstleistung vom … Karten-Nr. …" prima del nome del negozio
+                                   "kauf", "einkauf", "dienstleistung", "vom", "karten", "karte", "nr", "zahlung", "debitkarte", "belastung", "gutschrift", "twint", "bezug"]
         return parole.filter { !rumore.contains(String($0)) }.prefix(4).joined(separator: " ")
     }
 
@@ -135,7 +137,9 @@ enum Classificatore {
         // (le carte di credito e i conti senza parola chiave li riconosce Abbinamento.segnaGiroconto)
         (["giroconto", "giroc", "trasferimento", "ricarica conto", "ricarica carta", "top up", "topup",
           "revolut", "n26", "wise", "bunq", "hype", "trade republic",
-          "saldo carta", "estratto conto carta", "addebito carta di credito"], .giroconto, nil),
+          "saldo carta", "estratto conto carta", "addebito carta di credito",
+          // il pagamento mensile come lo scrive l'estratto della carta
+          "pagamento ricevuto grazie", "payment received thank you", "addebito in c c salvo buon fine"], .giroconto, nil),
         // investimenti
         (["fondo pensione", "previdenza complementare", "scalable capital", "directa", "degiro", "etoro", "xtb", "interactive brokers",
           "moneyfarm", "finpension", "amundi"], .investimento, nil),
