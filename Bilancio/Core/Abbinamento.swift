@@ -32,6 +32,22 @@ enum Abbinamento {
         return candidati.min { abs($0.data.timeIntervalSince(data)) < abs($1.data.timeIntervalSince(data)) }
     }
 
+    /// Scontrino pagato con carta o conto che la banca non ha ancora confermato (nessun addebito abbinato).
+    static func attendeBanca(_ m: Movimento) -> Bool {
+        m.scontrino != nil && m.idEsterno == nil && m.conto?.tipo != .contanti
+    }
+
+    /// Una volta sola: gli scontrini con carta di questo mese e del precedente ancora senza addebito tornano da verificare
+    /// (prima venivano salvati già confermati).
+    static func scontriniDaVerificare(in context: ModelContext) {
+        let chiave = "scontrini.daVerificare"
+        guard !UserDefaults.standard.bool(forKey: chiave) else { return }
+        for m in Contabilita.movimenti(da: Date().inizioMese.aggiungendo(mesi: -1), a: Date().aggiungendo(giorni: 1), in: context)
+        where attendeBanca(m) { m.stato = .daConfermare }
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: chiave)
+    }
+
     /// Giroconto tra conti propri (ricarica di un conto online, bonifico al conto deposito, saldo della carta di credito…): cerca su un ALTRO conto
     /// lo stesso importo con segno opposto entro ±giorniTolleranza. Se lo trova, segna entrambi come giroconto,
     /// così non gonfiano entrate e spese. Le scelte già confermate dall'utente (non giroconto) non si toccano.
@@ -114,6 +130,15 @@ enum Abbinamento {
         let f1 = arriva(90, "Bonifico Mario", deposito); f1.stato = .confermato
         let f2 = arriva(-90, "ESSELUNGA", corrente)
         assert(f1.tipo == .entrata && f2.tipo == .spesa)
+        // scontrino pagato con carta: da verificare finché non arriva l'addebito, che lo conferma senza creare doppioni
+        let scontrino = Scontrino(negozio: "Bar", data: oggi, totale: 12.34)
+        ctx.insert(scontrino)
+        let pagato = Movimento(data: oggi, importo: -12.34, tipo: .spesa, titolo: "Bar", origine: .scontrino, stato: .daConfermare, conto: corrente)
+        ctx.insert(pagato)
+        scontrino.movimento = pagato
+        assert(attendeBanca(pagato))
+        let addebito = arriva(-12.34, "POS BAR", corrente, giorni: 1)
+        assert(addebito === pagato && !pagato.daConfermare && !attendeBanca(pagato), "scontrino non confermato dalla banca")
         // i giroconti non entrano nei totali
         let t = Contabilita.totali([uscita, entrata, a, b])
         assert(t.entrate == 0 && t.spese == 0)

@@ -6972,12 +6972,12 @@
         }
       }
     },
-    "Se l'hai pagato in contanti spostalo sul conto Contanti; se il pagamento è arrivato dalla banca collegalo, così non conta due volte.": {
+    "Se l'hai pagato in contanti spostalo sul conto Contanti; se il pagamento è arrivato dalla banca collegalo, così non conta due volte. Se va bene così (per esempio una carta non collegata), confermalo con ✓.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "If you paid in cash, move it to the Cash account; if the payment came through the bank, link it so it isn't counted twice."
+            "value": "If you paid in cash, move it to the Cash account; if the payment came through the bank, link it so it isn't counted twice. If it's fine as it is (for example a card that isn't linked), confirm it with ✓."
           }
         }
       }

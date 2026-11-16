@@ -52,6 +52,7 @@ enum Avvio {
         DatiIniziali.inserisciSeVuoto(ctx)
         DatiIniziali.aggiornaCategorie(ctx)
         Sincronizzazione.correggiNomiConti(in: ctx)
+        Abbinamento.scontriniDaVerificare(in: ctx)
         CredenzialiEnableBanking.eliminaCopieChiave()
         GeneratoreRicorrenze.genera(in: ctx)
         if !ProcessInfo.processInfo.arguments.contains("-demo") { ScadenzaFirma.programmaNotifiche() }  // in demo il permesso coprirebbe lo schermo

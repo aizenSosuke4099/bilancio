@@ -22,11 +22,10 @@ struct ControlloFineMeseView: View {
         _contiContanti = Query(filter: #Predicate { $0.tipoRaw == contanti })
     }
 
-    private var daConfermare: [Movimento] { movimenti.filter(\.daConfermare) }
-    /// Scontrini registrati su un conto bancario ma senza il movimento arrivato dalla banca.
-    private var scontriniSenzaBanca: [Movimento] {
-        movimenti.filter { $0.scontrino != nil && $0.idEsterno == nil && $0.conto?.tipo != .contanti }
-    }
+    /// Gli scontrini in attesa della banca hanno la loro sezione.
+    private var daConfermare: [Movimento] { movimenti.filter { $0.daConfermare && !Abbinamento.attendeBanca($0) } }
+    /// Scontrini pagati con carta o conto senza il movimento arrivato dalla banca, non ancora verificati.
+    private var scontriniSenzaBanca: [Movimento] { movimenti.filter { $0.daConfermare && Abbinamento.attendeBanca($0) } }
     private var pagamentiSenzaScontrino: [Movimento] {
         movimenti.filter { m in
             m.idEsterno != nil && m.scontrino == nil && m.tipo == .spesa
@@ -45,6 +44,7 @@ struct ControlloFineMeseView: View {
 
     private func eraInContanti(_ m: Movimento) {
         m.conto = DatiIniziali.contoContanti(in: context)
+        m.conferma()
         salva()
     }
 
@@ -53,6 +53,7 @@ struct ControlloFineMeseView: View {
         guard let s = m.scontrino else { return }
         s.movimento = banca
         if banca.categoria == nil { banca.categoria = m.categoria }
+        banca.conferma()   // lo scontrino l'hai già controllato
         context.delete(m)
         salva()
     }
@@ -110,7 +111,15 @@ struct ControlloFineMeseView: View {
                     ForEach(scontrini) { m in
                         let compatibili = candidati(per: m)
                         VStack(alignment: .leading, spacing: 8) {
-                            riga(m)
+                            HStack(spacing: 12) {
+                                riga(m)
+                                Button { m.conferma(); salva() } label: {
+                                    Image(systemName: "checkmark.circle").font(.title2)
+                                }
+                                .buttonStyle(.borderless)
+                                .tint(.green)
+                                .accessibilityLabel("Conferma")
+                            }
                             HStack {
                                 Button("Era in contanti") { eraInContanti(m) }
                                 Menu("Collega a un pagamento") {
@@ -134,7 +143,7 @@ struct ControlloFineMeseView: View {
                 } header: {
                     Text("Scontrini senza pagamento bancario")
                 } footer: {
-                    Text("Se l'hai pagato in contanti spostalo sul conto Contanti; se il pagamento è arrivato dalla banca collegalo, così non conta due volte.")
+                    Text("Se l'hai pagato in contanti spostalo sul conto Contanti; se il pagamento è arrivato dalla banca collegalo, così non conta due volte. Se va bene così (per esempio una carta non collegata), confermalo con ✓.")
                 }
             }
 

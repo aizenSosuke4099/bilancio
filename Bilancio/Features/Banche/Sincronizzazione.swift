@@ -113,6 +113,7 @@ enum Sincronizzazione {
             esistente.idEsterno = idEsterno
             esistente.descrizioneOriginale = descrizione
             if esistente.conto == nil { esistente.conto = conto }
+            if esistente.scontrino != nil { esistente.conferma() }   // scontrino e banca combaciano
             return false
         }
 

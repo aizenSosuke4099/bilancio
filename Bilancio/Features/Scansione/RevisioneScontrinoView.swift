@@ -370,7 +370,8 @@ struct RevisioneScontrinoView: View {
             m.conferma()
         } else {
             let m = Movimento(data: s.data, importo: -s.totale.centesimi, tipo: .spesa, titolo: negozio, origine: .scontrino,
-                              stato: .confermato, conto: contoScelto, categoria: prevalente)
+                              // in contanti è confermato; con carta o conto lo conferma l'addebito della banca (o tu, a fine mese)
+                              stato: contoScelto?.tipo == .contanti ? .confermato : .daConfermare, conto: contoScelto, categoria: prevalente)
             m.descrizioneOriginale = s.negozioLetto
             context.insert(m)
             scontrino.movimento = m

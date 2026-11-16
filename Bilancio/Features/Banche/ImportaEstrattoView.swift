@@ -354,6 +354,7 @@ struct ImportaEstrattoView: View {
                 e.idEsterno = v.idEsterno
                 e.descrizioneOriginale = v.riga.descrizione
                 if e.conto == nil { e.conto = conto }
+                if e.scontrino != nil { e.conferma() }   // scontrino e banca combaciano
             }
         }
         profilo?.conto = conto
