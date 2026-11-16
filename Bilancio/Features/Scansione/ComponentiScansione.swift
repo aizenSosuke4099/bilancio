@@ -67,6 +67,8 @@ struct RigaRevisioneScansione: View {
         var parti: [String] = []
         if !riga.testo.isEmpty, riga.testo != riga.nomeProdotto { parti.append(riga.testo) }
         if riga.quantita != 1 { parti.append("\(riga.quantita.quote) \(riga.unita == "pz" ? "×" : riga.unita + " ×") \(riga.prezzoUnitario.euro)") }
+        let sconto = (riga.quantita * riga.prezzoUnitario - riga.totale).centesimi
+        if sconto >= 0.01 { parti.append(String(localized: "sconto \(sconto.euro)")) }
         parti.append(riga.categoria?.nome ?? String(localized: "Senza categoria"))
         return parti.joined(separator: " · ")
     }

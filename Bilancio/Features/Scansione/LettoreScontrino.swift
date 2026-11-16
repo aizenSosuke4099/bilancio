@@ -214,7 +214,7 @@ enum LettoreScontrino {
         Leggi scontrini italiani. Ricevi il testo OCR di uno scontrino, una riga per ogni riga stampata \
         (descrizione a sinistra, prezzo a destra). Estrai solo ciò che è scritto, senza inventare.
         - Le righe di prodotto hanno una descrizione e un prezzo. Una riga come "2 x 1,29" indica quantità e prezzo unitario della riga di prodotto il cui prezzo è 2 × 1,29.
-        - Le righe di sconto (SCONTO, PROMO, OFFERTA, importi negativi) non sono prodotti: sottrai l'importo al totale della riga precedente.
+        - Le righe di sconto (SCONTO, PROMO, OFFERTA, importi negativi) restano righe a sé, con totale negativo: non sottrarle tu.
         - Ignora totali, subtotali, IVA, pagamenti, resto, numero documento, cassa, tessera punti.
         - I numeri sullo scontrino usano la virgola per i decimali: "1,29" vale 1.29.
         - testo: la descrizione senza il prezzo.
@@ -263,7 +263,7 @@ fileprivate struct RigaGenerata {
     var quantita: Double
     @Guide(description: "Prezzo unitario in euro")
     var prezzoUnitario: Double
-    @Guide(description: "Totale della riga in euro, già scontato")
+    @Guide(description: "Totale della riga in euro, negativo per le righe di sconto")
     var totale: Double
     @Guide(description: "Categoria di spesa, una di quelle elencate nelle istruzioni")
     var categoria: String

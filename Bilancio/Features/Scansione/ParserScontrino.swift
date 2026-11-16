@@ -144,19 +144,26 @@ enum ParserScontrino {
             quantitaInSospeso = nil
         }
 
-        b.righe = applicaSconti(voci)
+        // le righe a 0,00 (busta in omaggio, componenti del menu) non sono spese
+        b.righe = applicaSconti(voci.filter { $0.totale != 0 })
         if b.totale == nil, !b.righe.isEmpty { b.totale = b.righe.reduce(0) { $0 + $1.totale }.centesimi }
         return b
     }
 
-    /// Le righe di sconto (importo negativo) si sommano alla riga precedente e spariscono.
+    /// Le righe di sconto (importo negativo) spariscono: si tolgono dalla riga più vicina sopra che le può assorbire,
+    /// di solito quella subito sopra; in un menu è il menu (l'aggiunta da 0,40 stampata in mezzo resta intera).
+    /// Se nessuna riga basta da sola (sconto sul totale) si toglie risalendo dalle ultime righe.
+    /// Il prezzo unitario resta quello pieno: il totale della riga è quello pagato.
     static func applicaSconti(_ righe: [BozzaScontrino.Riga]) -> [BozzaScontrino.Riga] {
         var esito: [BozzaScontrino.Riga] = []
         for r in righe {
-            if r.totale < 0, !esito.isEmpty {
-                esito[esito.count - 1].totale = (esito[esito.count - 1].totale + r.totale).centesimi
-            } else {
-                esito.append(r)
+            guard r.totale < 0, !esito.isEmpty else { esito.append(r); continue }
+            var resto = -r.totale
+            let ordine = esito.lastIndex { $0.totale >= resto - 0.005 }.map { [$0] } ?? Array(esito.indices.reversed())
+            for i in ordine where resto > 0.005 {
+                let tolto = max(0, min(esito[i].totale, resto))
+                esito[i].totale = (esito[i].totale - tolto).centesimi
+                resto -= tolto
             }
         }
         return esito
@@ -451,7 +458,35 @@ enum ParserScontrino {
         assert(vicino(formato(da: "PARMIGIANO " + pulisciOCR("0, 312KG"))?.formato, 0.312))
         assert(vicino(formato(da: "BIRRA MORETTI 66CL")?.formato, 0.66) && formato(da: "UOVA X6") == nil)
 
-        assert(applicaSconti([.init(testo: "A", prezzoUnitario: 2, totale: 2), .init(testo: "SC", prezzoUnitario: -0.5, totale: -0.5)]).map(\.totale) == [1.5])
+        // 5. Fast food: sconto dopo un menu con aggiunta (va sul menu, non sull'aggiunta da 0,40), righe a 0,00, "OUT Totale EURO"
+        let menu = """
+        BURGER POINT
+        VIA ROMA 1
+        20100 MILANO (MI)
+        DOCUMENTO COMMERCIALE
+        Qta Prodotti  IVA  TOTALE
+        1 Menu Bacon Medio  10%  9.10
+        1 Panino Bacon  10%
+        1 Te Limone 0,4L  22%
+        1 Salsa Bacon  10%  0.40
+        Sconto:  -1.20
+        1 Crocchette x4  10%  3.95
+        1 Maionese  10%
+        Sconto:  -1.95
+        1 Panino Pollo  10%  7.10
+        1 Busta  10%  0.00
+        OUT Totale EURO  17.40
+        Pagamento Contanti  20.00
+        Resto  2.60
+        """
+        let e = analizza(menu)
+        assert(vicino(e.totale, 17.4) && e.pagatoInContanti == true, "totale: \(String(describing: e.totale))")
+        assert(e.righe.map(\.totale) == [7.9, 0.4, 2, 7.1], "menu: \(e.righe.map { ($0.testo, $0.totale) })")
+        assert(vicino(e.righe[0].prezzoUnitario, 9.1))
+
+        func r(_ t: Double) -> BozzaScontrino.Riga { .init(testo: "", prezzoUnitario: t, totale: t) }
+        assert(applicaSconti([r(2), r(-0.5)]).map(\.totale) == [1.5])
+        assert(applicaSconti([r(1), r(1), r(-1.5)]).map(\.totale) == [0.5, 0], "sconto sul totale")
         print("ParserScontrino: autoverifica superata")
     }
     #endif

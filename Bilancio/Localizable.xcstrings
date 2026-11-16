@@ -8482,6 +8482,16 @@
         }
       }
     },
+    "sconto %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "discount %@"
+          }
+        }
+      }
+    },
     "servono più acquisti ripetuti": {
       "localizations": {
         "en": {

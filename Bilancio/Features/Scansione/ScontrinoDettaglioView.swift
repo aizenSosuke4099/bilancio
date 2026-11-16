@@ -150,6 +150,8 @@ struct ScontrinoDettaglioView: View {
         var parti: [String] = []
         if r.prodotto != nil { parti.append(r.testo) }
         if r.quantita != 1 { parti.append("\(r.quantita.quote) × \(r.prezzoUnitario.euro)") }
+        let sconto = (r.quantita * r.prezzoUnitario - r.totale).centesimi
+        if sconto >= 0.01 { parti.append(String(localized: "sconto \(sconto.euro)")) }
         parti.append(r.categoria?.nome ?? String(localized: "Senza categoria"))
         return parti.joined(separator: " · ")
     }
