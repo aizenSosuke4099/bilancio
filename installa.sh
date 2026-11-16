@@ -8,7 +8,7 @@ export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 TEAM=$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/null | sed -n 's/.*teamID = \([A-Z0-9]*\);.*/\1/p' | head -1)
 [ -n "$TEAM" ] || { echo "Nessun Apple ID in Xcode: aggiungilo da Xcode › Settings › Accounts."; exit 1; }
 
-DEVICE=$(xcrun devicectl list devices 2>/dev/null | awk '/iPhone/ && /available|connected/ && !/simulated/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) { print $i; exit } }')
+DEVICE=$(xcrun devicectl list devices 2>/dev/null | awk '/iPhone/ && /available|connected/ && !/unavailable|simulated/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) { print $i; exit } }')
 [ -n "$DEVICE" ] || { echo "Nessun iPhone collegato e sbloccato."; exit 1; }
 
 # versione nuova da GitHub (solo se non ci sono modifiche locali in sospeso)
