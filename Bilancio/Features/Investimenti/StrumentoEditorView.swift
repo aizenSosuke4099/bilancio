@@ -36,6 +36,10 @@ struct StrumentoEditorView: View {
     @State private var dataIniziale = Date()
     @State private var caricato = false
     @State private var chiediElimina = false
+    @State private var tickerScritto = ""
+    @State private var esitoTicker: String?
+    @State private var salvando = false
+    @State private var errore: String?
 
     private var isinPulito: String { isin.trimmingCharacters(in: .whitespaces).uppercased() }
     private var isinObbligatorio: Bool { tipo.quotato }
@@ -85,14 +89,37 @@ struct StrumentoEditorView: View {
                     } else if CalcoliInvestimenti.isinValido(isinPulito) {
                         Text("Nessun listino trovato: potrai inserire il prezzo a mano dal dettaglio.").font(.caption).foregroundStyle(.secondary)
                     }
+                    if tipo.quotato {
+                        HStack {
+                            TextField("Ticker di Yahoo, se lo conosci", text: $tickerScritto)
+                                .textInputAutocapitalization(.characters)
+                                .autocorrectionDisabled()
+                                .font(.body.monospaced())
+                                .onSubmit { Task { await usaTicker() } }
+                            Button("Usa") { Task { await usaTicker() } }
+                                .buttonStyle(.borderless)
+                                .disabled(tickerScritto.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }
+                        if let esitoTicker { Text(esitoTicker).font(.caption).foregroundStyle(.red) }
+                    }
                     if let q = quotazione {
                         LabeledContent("Prezzo", value: q.prezzo.valuta(q.valuta) + (tipo == .obbligazione ? " (%)" : ""))
+                        // il nome che Yahoo dà a questo ticker: deve essere lo strumento che intendi
+                        if let n = q.nome { LabeledContent("Su Yahoo", value: n) }
+                    }
+                    if tipo == .etf, CalcoliInvestimenti.isinValido(isinPulito),
+                       let scheda = URL(string: "https://www.justetf.com/\(Bundle.main.preferredLocalizations.first == "it" ? "it" : "en")/etf-profile.html?isin=\(isinPulito)") {
+                        Link("Controlla su justETF", destination: scheda)
                     }
                     TextField("Nome", text: $nome)
                 } header: {
                     Text("Strumento")
                 } footer: {
-                    if !isinObbligatorio { Text("Per fondi pensione e gestioni l'ISIN è facoltativo: il valore lo aggiorni tu.") }
+                    if isinObbligatorio {
+                        Text("Il listino dice su quale borsa e in che valuta viene letto il prezzo. Se conosci il ticker di Yahoo (per esempio VWCE.MI) puoi scriverlo: controlla che nome e valuta trovati siano quelli giusti.")
+                    } else {
+                        Text("Per fondi pensione e gestioni l'ISIN è facoltativo: il valore lo aggiorni tu.")
+                    }
                 }
 
                 Section("Dove") {
@@ -147,10 +174,15 @@ struct StrumentoEditorView: View {
                     } header: {
                         Text("Quanto hai già")
                     } footer: {
-                        Text(conSituazione
-                             ? (conQuote ? "Le quote e il versato li trovi nell'app della piattaforma. Il valore serve solo se Yahoo non trova il prezzo."
-                                         : "Da qui in poi aggiorna il valore dal dettaglio quando la piattaforma ti manda il rendiconto.")
-                             : "Dopo il salvataggio aggiungi acquisti e versamenti dal dettaglio dello strumento.")
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(conSituazione
+                                 ? (conQuote ? "Le quote e il versato li trovi nell'app della piattaforma. Il valore serve solo se Yahoo non trova il prezzo."
+                                             : "Da qui in poi aggiorna il valore dal dettaglio quando la piattaforma ti manda il rendiconto.")
+                                 : "Dopo il salvataggio aggiungi acquisti e versamenti dal dettaglio dello strumento.")
+                            if tipo == .fondoPensione && conSituazione {
+                                Text("Per la deducibilità il totale versato qui non conta come versamento di quest'anno: i versamenti dell'anno aggiungili dal dettaglio dello strumento.")
+                            }
+                        }
                     }
                 }
 
@@ -167,7 +199,7 @@ struct StrumentoEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Salva") { salva() }.disabled(!valido) }
+                ToolbarItem(placement: .confirmationAction) { Button("Salva") { salva() }.disabled(!valido || salvando) }
             }
             .confirmationDialog("Eliminare \(nome)?", isPresented: $chiediElimina, titleVisibility: .visible) {
                 Button("Elimina", role: .destructive) {
@@ -178,6 +210,9 @@ struct StrumentoEditorView: View {
                 Text("Si cancellano anche operazioni e valutazioni. I movimenti dei conti restano.")
             }
             .onAppear(perform: carica)
+            .alert(errore ?? "", isPresented: Binding(get: { errore != nil }, set: { if !$0 { errore = nil } })) {
+                Button("OK", role: .cancel) {}
+            }
             .onChange(of: tipo) { _, nuovo in
                 if strumento == nil { valoreManuale = !nuovo.quotato }
             }
@@ -234,7 +269,40 @@ struct StrumentoEditorView: View {
         if nome.isEmpty, let n = q.nome { nome = n; nomeAutomatico = n }
     }
 
+    /// Ticker scritto a mano: vale solo se Yahoo lo conosce. Nome, valuta e prezzo trovati compaiono subito, per controllo.
+    private func usaTicker() async {
+        let t = tickerScritto.trimmingCharacters(in: .whitespaces).uppercased()
+        guard !t.isEmpty else { return }
+        esitoTicker = nil
+        guard await Prezzi.quotazione(t) != nil else {
+            esitoTicker = String(localized: "Yahoo Finance non conosce il ticker \(t).")
+            return
+        }
+        ticker = t   // prezzo, valuta e nome li carica scegliListino
+        tickerScritto = ""
+    }
+
     private func salva() {
+        // La situazione iniziale fissa il cambio del giorno: per una valuta mai vista va scaricato prima,
+        // altrimenti varrebbe 1 per sempre e l'app mostrerebbe un guadagno mai avuto.
+        if strumento == nil, conSituazione, valuta != "EUR", UserDefaults.standard.double(forKey: "cambio.\(valuta)") <= 0 {
+            let v = valuta
+            salvando = true
+            Task {
+                defer { salvando = false }
+                guard let c = await Prezzi.cambio(v) else {
+                    errore = String(localized: "Non riesco a scaricare il cambio \(v) → EUR, che serve per registrare quanto hai versato. Riprova con la rete attiva.")
+                    return
+                }
+                Portafoglio.salvaCambio(v, c)
+                salvaOra()
+            }
+            return
+        }
+        salvaOra()
+    }
+
+    private func salvaOra() {
         let s = strumento ?? Strumento(nome: nome, isin: isinPulito, tipo: tipo, piattaforma: nomePiattaforma, valuta: valuta)
         if strumento == nil { context.insert(s) }
         s.nome = nome.trimmingCharacters(in: .whitespaces)

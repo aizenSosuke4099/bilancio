@@ -28,7 +28,10 @@ struct AnnoView: View {
             return DatiMeseAnno(mese: inizio, totali: Contabilita.totali(gruppi[inizio] ?? []), haDati: gruppi[inizio] != nil)
         }
         let mesiDati = mesi.filter(\.haDati)
-        let nMesi = Double(max(mesiDati.count, 1))
+        // le medie si fanno sui mesi conclusi: il mese in corso, a metà, le abbasserebbe
+        let conclusi = mesiDati.filter { $0.mese < oggi.inizioMese }
+        let mediaEntrate = conclusi.isEmpty ? totali.entrate : conclusi.reduce(0) { $0 + $1.totali.entrate } / Double(conclusi.count)
+        let mediaSpese = conclusi.isEmpty ? totali.spese : conclusi.reduce(0) { $0 + $1.totali.spese } / Double(conclusi.count)
         let piattaforme = CalcoliDashboard.investitoPerPiattaforma(movimenti)
         let patrimonio = CalcoliDashboard.patrimonio(mesi: [da.aggiungendo(mesi: -1)] + mesi.map(\.mese), in: context)
         let patrimonioFine = patrimonio.last?.totale ?? 0
@@ -41,9 +44,9 @@ struct AnnoView: View {
 
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                         RiquadroKPI(titolo: "Entrate", valore: totali.entrate.euroTondo,
-                                    nota: "media \((totali.entrate / nMesi).euroTondo)/mese", colore: Tinta.entrate)
+                                    nota: "media \(mediaEntrate.euroTondo)/mese", colore: Tinta.entrate)
                         RiquadroKPI(titolo: "Spese", valore: totali.spese.euroTondo,
-                                    nota: "media \((totali.spese / nMesi).euroTondo)/mese", colore: Tinta.spese)
+                                    nota: "media \(mediaSpese.euroTondo)/mese", colore: Tinta.spese)
                         RiquadroKPI(titolo: "Risparmio", valore: totali.risparmio.euroTondo,
                                     nota: totali.tassoSignificativo ? "\(CalcoliDashboard.percentoTondo(totali.tassoRisparmio)) delle entrate" : nil,
                                     colore: Tinta.risparmio,

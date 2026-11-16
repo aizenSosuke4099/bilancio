@@ -45,12 +45,12 @@ enum CalcoliConsigli {
         max(0, saldo) * tassoAnnuo / 100 / 12
     }
 
-    /// Articolo davanti a un numero ("il 33%", "l'8%", "l'11%"): si elide davanti a 1, 8, 11, 18, 80–89.
+    /// Articolo davanti a un numero ("il 33%", "l'8%", "l'11%"): si elide davanti a 1, 8, 11, 80–89 (non davanti a 18: "il diciotto").
     /// Se l'app non è in italiano restituisce il numero senza articolo.
     static func conArticolo(_ numero: String, normale: String = "il ", eliso: String = "l'") -> String {
         guard Bundle.main.preferredLocalizations.first == "it" else { return numero }
         let intero = Int(numero.prefix { $0.isNumber }) ?? 0
-        let vocale = [1, 8, 11, 18].contains(intero) || (80...89).contains(intero) || (800...899).contains(intero)
+        let vocale = [1, 8, 11].contains(intero) || (80...89).contains(intero) || (800...899).contains(intero)
         return (vocale ? eliso : normale) + numero
     }
 

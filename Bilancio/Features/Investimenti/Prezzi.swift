@@ -31,26 +31,28 @@ enum Prezzi {
         defer { inCorso = false }
 
         let strumenti = (try? context.fetch(FetchDescriptor<Strumento>(predicate: #Predicate { !$0.archiviato }))) ?? []
-        var riusciti = 0, tentati = 0
+        var prezzi = 0, prezziTentati = 0, cambi = 0, cambiTentati = 0
         for s in strumenti where !s.valoreManuale {
             guard let t = s.ticker, !t.isEmpty else { continue }
-            tentati += 1
-            if let q = await quotazione(t) {
+            prezziTentati += 1
+            // una quotazione in un'altra valuta (listino cambiato, valuta corretta a mano) non è il prezzo dello strumento
+            if let q = await quotazione(t), q.valuta == s.valuta {
                 s.ultimoPrezzo = q.prezzo
                 s.ultimoPrezzoData = q.data ?? Date()
-                riusciti += 1
+                prezzi += 1
             }
         }
         let conti = (try? context.fetch(FetchDescriptor<Conto>(predicate: #Predicate { !$0.archiviato }))) ?? []
         for valuta in Set(strumenti.map(\.valuta) + conti.map(\.valuta)) where valuta != "EUR" {
-            tentati += 1
+            cambiTentati += 1
             if let c = await cambio(valuta) {
                 Portafoglio.salvaCambio(valuta, c)
-                riusciti += 1
+                cambi += 1
             }
         }
-        // offline: non si segna l'aggiornamento, così si riprova alla prossima apertura
-        if riusciti > 0 || tentati == 0 {
+        // L'ora di aggiornamento è quella dei prezzi: se arrivano solo i cambi non si segna, così si riprova
+        // alla prossima apertura (e la schermata non dice "aggiornato" con i prezzi fermi).
+        if prezziTentati > 0 ? prezzi > 0 : (cambi > 0 || cambiTentati == 0) {
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: chiaveUltimoAggiornamento)
         }
         try? context.save()

@@ -24,6 +24,15 @@ enum CalcoliDashboard {
         max(1, Set(movimenti.map { $0.data.inizioMese }).count)
     }
 
+    /// Spesa media mensile: sui mesi già conclusi quando ce ne sono, altrimenti il mese in corso riportato a mese intero
+    /// (il 10 del mese, 400 € spesi non sono "400 € al mese").
+    static func spesaMediaMensile(_ movimenti: [Movimento], oggi: Date = Date()) -> Double {
+        let conclusi = movimenti.filter { $0.data < oggi.inizioMese }
+        let media = Contabilita.totali(conclusi).spese / Double(mesiConDati(conclusi))
+        if !conclusi.isEmpty, media > 0 { return media }
+        return Contabilita.totali(movimenti).spese / max(Double(oggi.giorno) / Double(giorniNelMese(oggi)), 0.25)
+    }
+
     /// Spesa accumulata giorno per giorno nel mese, dal giorno 1 al giorno `giorni` (indice 0 = giorno 1).
     static func spesaCumulata(_ movimenti: [Movimento], mese: Date, giorni: Int) -> [Double] {
         let da = mese.inizioMese, a = mese.inizioMeseSuccessivo
@@ -57,8 +66,8 @@ enum CalcoliDashboard {
         for s in strumenti {
             let nome = s.piattaforma.isEmpty ? s.nome : s.piattaforma
             somme[nome, default: 0] += s.operazioni
-                .filter { $0.tipo.entraCapitale && $0.data >= da && $0.data < a }
-                .reduce(0) { $0 + $1.importo * $1.cambioEUR }
+                .filter { $0.tipo.entraCapitale && $0.data >= da && $0.data < a && !Portafoglio.èSituazioneIniziale($0) }
+                .reduce(0) { $0 + ($1.importo + $1.commissioni) * $1.cambioEUR }
         }
         return somme.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
     }

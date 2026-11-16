@@ -95,14 +95,15 @@ struct DettaglioStrumentoView: View {
         let s = strumento
         let valore = Portafoglio.valoreEUR(s)
         let versato = Portafoglio.versatoEUR(s)
-        let guadagno = valore - versato
+        let guadagno = Portafoglio.guadagnoEUR(s)   // con dividendi e cedole
+        let investito = Portafoglio.investitoEUR(s)
         let colore = guadagno >= 0 ? Tinta.entrate : Tinta.spese
         let quote = Portafoglio.quote(s)
         return LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
             RiquadroKPI(titolo: "Valore", valore: valore.euro, nota: s.valuta != "EUR" ? "\(Portafoglio.valore(s).valuta(s.valuta))" : nil, colore: Tinta.investito)
             RiquadroKPI(titolo: "Versato", valore: versato.euro)
             RiquadroKPI(titolo: "Guadagno", valore: (guadagno >= 0 ? "+" : "") + guadagno.euro,
-                        nota: versato > 0 ? "\((guadagno / versato).percentoConSegno)" : nil, colore: colore, coloreNota: colore)
+                        nota: investito > 0 ? "\((guadagno / investito).percentoConSegno)" : nil, colore: colore, coloreNota: colore)
             if !s.valoreManuale || quote > 0 {
                 RiquadroKPI(titolo: s.tipo == .obbligazione ? "Nominale" : "Quote", valore: quote.quote,
                             nota: Portafoglio.prezzoMedio(s).map { "carico medio \(prezzoTesto($0))" })
@@ -112,7 +113,7 @@ struct DettaglioStrumentoView: View {
 
     private var deducibilita: some View {
         let anno = Date().anno
-        let versato = strumento.operazioni.filter { $0.data.anno == anno && $0.tipo.entraCapitale }
+        let versato = strumento.operazioni.filter { $0.data.anno == anno && $0.tipo.entraCapitale && !Portafoglio.èSituazioneIniziale($0) }
             .reduce(0) { $0 + ($1.importo + $1.commissioni) * $1.cambioEUR }
         return Scheda(titolo: "Deducibilità \(String(anno))") {
             Text("Versato quest'anno **\(versato.euro)** di \(limiteDeducibile.euro) deducibili")
@@ -273,7 +274,7 @@ struct DettaglioStrumentoView: View {
         guard let t = strumento.ticker else { return }
         aggiornando = true
         defer { aggiornando = false }
-        if let q = await Prezzi.quotazione(t) {
+        if let q = await Prezzi.quotazione(t), q.valuta == strumento.valuta {   // un prezzo in un'altra valuta non è il suo
             strumento.ultimoPrezzo = q.prezzo
             strumento.ultimoPrezzoData = q.data ?? Date()
         }

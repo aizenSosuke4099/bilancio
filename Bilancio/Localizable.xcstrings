@@ -2371,6 +2371,16 @@
         }
       }
     },
+    "Controlla su justETF": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check on justETF"
+          }
+        }
+      }
+    },
     "Controllo di fine mese": {
       "localizations": {
         "en": {
@@ -3602,6 +3612,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Day %lld of the month"
+          }
+        }
+      }
+    },
+    "Il listino dice su quale borsa e in che valuta viene letto il prezzo. Se conosci il ticker di Yahoo (per esempio VWCE.MI) puoi scriverlo: controlla che nome e valuta trovati siano quelli giusti.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The listing says on which exchange and in which currency the price is read. If you know the Yahoo ticker (for example VWCE.MI) you can type it: check that the name and currency found are the right ones."
           }
         }
       }
@@ -5202,6 +5222,16 @@
         }
       }
     },
+    "Non riesco a scaricare il cambio %@ → EUR, che serve per registrare quanto hai versato. Riprova con la rete attiva.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I can't download the %@ → EUR exchange rate, which is needed to record how much you paid in. Try again when you're online."
+          }
+        }
+      }
+    },
     "Non riesco ad aprire il PDF.": {
       "localizations": {
         "en": {
@@ -5655,6 +5685,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "For pension funds and managed portfolios the ISIN is optional: you update the value yourself."
+          }
+        }
+      }
+    },
+    "Per la deducibilità il totale versato qui non conta come versamento di quest'anno: i versamenti dell'anno aggiungili dal dettaglio dello strumento.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For the tax deduction, the total paid in here doesn't count as this year's contribution: add this year's contributions from the instrument's detail."
           }
         }
       }
@@ -7382,6 +7422,16 @@
         }
       }
     },
+    "Su Yahoo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On Yahoo"
+          }
+        }
+      }
+    },
     "Sullo scontrino": {
       "localizations": {
         "en": {
@@ -7429,6 +7479,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Line item text"
+          }
+        }
+      }
+    },
+    "Ticker di Yahoo, se lo conosci": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yahoo ticker, if you know it"
           }
         }
       }
@@ -7875,6 +7935,16 @@
         }
       }
     },
+    "Usa": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use"
+          }
+        }
+      }
+    },
     "Usa la somma delle righe (%@)": {
       "localizations": {
         "en": {
@@ -8087,6 +8157,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Decimal comma (1.234,56)"
+          }
+        }
+      }
+    },
+    "Yahoo Finance non conosce il ticker %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yahoo Finance doesn't know the ticker %@."
           }
         }
       }

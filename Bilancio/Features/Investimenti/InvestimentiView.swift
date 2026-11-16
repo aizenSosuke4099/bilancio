@@ -93,14 +93,15 @@ struct InvestimentiView: View {
     private var riquadri: some View {
         let valore = strumenti.reduce(0) { $0 + Portafoglio.valoreEUR($1) }
         let versato = strumenti.reduce(0) { $0 + Portafoglio.versatoEUR($1) }
-        let guadagno = valore - versato
+        let guadagno = strumenti.reduce(0) { $0 + Portafoglio.guadagnoEUR($1) }   // con dividendi e cedole
+        let investito = strumenti.reduce(0) { $0 + Portafoglio.investitoEUR($1) }
         let colore = guadagno >= 0 ? Tinta.entrate : Tinta.spese
         let aggiornato = aggiornatoIl > 0 ? Date(timeIntervalSince1970: aggiornatoIl) : nil
         return LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
             RiquadroKPI(titolo: "Valore", valore: valore.euroTondo, nota: strumenti.count == 1 ? "1 strumento" : "\(strumenti.count) strumenti", colore: Tinta.investito)
             RiquadroKPI(titolo: "Versato", valore: versato.euroTondo, nota: "capitale netto")
             RiquadroKPI(titolo: "Guadagno", valore: (guadagno >= 0 ? "+" : "") + guadagno.euroTondo,
-                        nota: versato > 0 ? "\((guadagno / versato).percentoConSegno)" : nil, colore: colore, coloreNota: colore)
+                        nota: investito > 0 ? "\((guadagno / investito).percentoConSegno)" : nil, colore: colore, coloreNota: colore)
             RiquadroKPI(titolo: "Prezzi", valore: aggiornato.map { $0.giornoMese + " " + $0.formatted(.dateTime.hour().minute()) } ?? String(localized: "mai"),
                         nota: "tira giù per aggiornare")
         }

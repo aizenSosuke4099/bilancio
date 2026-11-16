@@ -263,6 +263,11 @@ struct PianoPACEditorView: View {
         p.importoMensile = leggiNumero(importo) ?? 0
         p.giorno = giorno
         p.conto = conto
+        // riattivato dopo una pausa: i mesi saltati non si generano tutti insieme, si riparte da questo mese
+        if piano != nil, !p.attivo, attivo, var u = p.ultimaGenerazione {
+            while u.aggiungendo(mesi: 1) < Date().inizioMese { u = u.aggiungendo(mesi: 1) }
+            p.ultimaGenerazione = u
+        }
         p.attivo = attivo
 
         if piano == nil || ripartizioneCambiata {

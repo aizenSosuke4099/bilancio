@@ -12,9 +12,9 @@ var calendario: Calendar {
 
 extension Double {
     /// "1.234,56 €"
-    var euro: String { formatted(.currency(code: "EUR")) }
+    var euro: String { (centesimi + 0).formatted(.currency(code: "EUR")) }   // + 0: un residuo come -0,001 non diventa "-0,00 €"
     /// "1.235 €"
-    var euroTondo: String { formatted(.currency(code: "EUR").precision(.fractionLength(0))) }
+    var euroTondo: String { (rounded() + 0).formatted(.currency(code: "EUR").precision(.fractionLength(0))) }
     /// Importo in una valuta qualsiasi ("CHF 1.234,56").
     func valuta(_ codice: String) -> String { formatted(.currency(code: codice)) }
     /// 0.331 → "33,1%"
@@ -65,6 +65,7 @@ func inizioMese(anno: Int, mese: Int) -> Date {
 /// Legge numeri scritti all'italiana o all'inglese ("1.234,56", "1234.56", "-12,30 €").
 func leggiNumero(_ testo: String) -> Double? {
     var s = testo.trimmingCharacters(in: .whitespaces)
+        .replacingOccurrences(of: "\u{2212}", with: "-")   // meno tipografico
         .replacingOccurrences(of: "€", with: "")
         .replacingOccurrences(of: "EUR", with: "")
         .replacingOccurrences(of: " ", with: "")

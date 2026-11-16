@@ -249,6 +249,12 @@ fileprivate struct EditorRicorrenza: View {
         r.giorno = giorno
         r.categoria = categorie.first { $0.persistentModelID == categoriaID }
         r.conto = conti.first { $0.persistentModelID == contoID }
+        // riattivata dopo una pausa: le scadenze saltate non si generano tutte insieme (la cadenza resta la stessa)
+        if ricorrenza != nil, !r.attiva, attiva, var u = r.ultimaGenerazione {
+            let passo = max(r.ogniMesi, 1)
+            while u.aggiungendo(mesi: passo) < Date().inizioMese { u = u.aggiungendo(mesi: passo) }
+            r.ultimaGenerazione = u
+        }
         r.attiva = attiva
         try? context.save()
         dismiss()

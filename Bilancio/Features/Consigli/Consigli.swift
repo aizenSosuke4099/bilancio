@@ -109,7 +109,7 @@ enum Consigli {
         }
 
         // Dicembre: quota deducibile residua dei fondi pensione italiani
-        if inizio.mese == 12 {
+        if inizio.mese == 12, inizio.anno == oggi.anno {   // non per un dicembre passato
             let fondi = CalcoliDashboard.versatoFondiPensione(anno: inizio.anno, in: context)
             if !fondi.isEmpty {
                 let versato = fondi.reduce(0) { $0 + $1.importo }
@@ -130,7 +130,8 @@ enum Consigli {
         }
 
         // Tasso di risparmio vs media
-        if totali.tassoSignificativo {
+        // a mese in corso il confronto con mesi interi non ha senso prima degli ultimi giorni; "risparmi il -50%" nemmeno
+        if totali.tassoSignificativo, totali.risparmio >= 0, !corrente || oggi.giorno >= 25 {
             let tassi = precedenti.map(Contabilita.totali).filter { $0.entrate > 0 }.map(\.tassoRisparmio)
             if !tassi.isEmpty {
                 let media = tassi.reduce(0, +) / Double(tassi.count)
@@ -215,8 +216,8 @@ enum Consigli {
 
         if corrente {
             // Fondo di emergenza
-            if totali.spese > 0 {
-                let mediaMensile = totali.spese / Double(CalcoliDashboard.mesiConDati(movimenti))
+            let mediaMensile = CalcoliDashboard.spesaMediaMensile(movimenti, oggi: oggi)
+            if mediaMensile > 0 {
                 let liquidita = Contabilita.liquidita(in: context)
                 let mesi = liquidita / mediaMensile
                 let mesiTesto = mesi.formatted(.number.precision(.fractionLength(1)))
@@ -232,9 +233,10 @@ enum Consigli {
             let strumenti = (try? context.fetch(FetchDescriptor<Strumento>(predicate: #Predicate { !$0.archiviato }))) ?? []
             let versato = strumenti.reduce(0) { $0 + Portafoglio.versatoEUR($1) }
             let valore = strumenti.reduce(0) { $0 + Portafoglio.valoreEUR($1) }
-            if versato > 0 {
-                let guadagno = valore - versato
-                voci.append((40, String(localized: "I tuoi investimenti valgono \(valore.euroTondo) con \(versato.euroTondo) versati: \(guadagno >= 0 ? "+" : "−")\(abs(guadagno).euroTondo) (\(pctSegno(guadagno / versato))).")))
+            let investito = strumenti.reduce(0) { $0 + Portafoglio.investitoEUR($1) }
+            if versato > 0, investito > 0 {
+                let guadagno = strumenti.reduce(0) { $0 + Portafoglio.guadagnoEUR($1) }
+                voci.append((40, String(localized: "I tuoi investimenti valgono \(valore.euroTondo) con \(versato.euroTondo) versati: \(guadagno >= 0 ? "+" : "−")\(abs(guadagno).euroTondo) (\(pctSegno(guadagno / investito))).")))
             }
         }
 
