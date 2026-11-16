@@ -124,8 +124,14 @@ struct EditorRigaScansioneView: View {
         }
         .navigationTitle(riga.nomeProdotto.isEmpty ? String(localized: "Riga") : riga.nomeProdotto)
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: riga.quantita) { riga.totale = (riga.quantita * riga.prezzoUnitario).centesimi }
-        .onChange(of: riga.prezzoUnitario) { riga.totale = (riga.quantita * riga.prezzoUnitario).centesimi }
+        // il totale segue quantità × prezzo, ma lo sconto letto dallo scontrino resta
+        .onChange(of: riga.quantita) { prima, _ in ricalcola(listinoPrima: prima * riga.prezzoUnitario) }
+        .onChange(of: riga.prezzoUnitario) { prima, _ in ricalcola(listinoPrima: riga.quantita * prima) }
+    }
+
+    private func ricalcola(listinoPrima: Double) {
+        let sconto = max(0, listinoPrima - riga.totale)
+        riga.totale = max(0, riga.quantita * riga.prezzoUnitario - sconto).centesimi
     }
 }
 

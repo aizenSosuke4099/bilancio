@@ -255,22 +255,6 @@
         }
       }
     },
-    "%@ · %@ · %@": {
-      "localizations": {
-        "it": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ · %2$@ · %3$@"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · %@ · %@"
-          }
-        }
-      }
-    },
     "%@ · da addebitare": {
       "localizations": {
         "en": {
@@ -1411,6 +1395,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bilancio expires in %@"
+          }
+        }
+      }
+    },
+    "Bilancio segue la lingua dell'iPhone: italiano o inglese (con le altre lingue resta in italiano). Per sceglierla solo per questa app apri le impostazioni di iOS da qui e tocca Lingua: la voce compare se l'iPhone ha almeno due lingue preferite.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bilancio follows the iPhone's language: Italian or English (with other languages it stays in Italian). To choose it for this app only, open iOS Settings from here and tap Language: the option appears when the iPhone has at least two preferred languages."
           }
         }
       }
@@ -4058,6 +4052,16 @@
         }
       }
     },
+    "L'addebito non è ancora arrivato: di solito arriva entro qualche giorno e si collega da solo.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The charge hasn't arrived yet: it usually shows up within a few days and links by itself."
+          }
+        }
+      }
+    },
     "L'operazione non si può annullare.": {
       "localizations": {
         "en": {
@@ -4372,6 +4376,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Read with rules"
+          }
+        }
+      }
+    },
+    "Lingua": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        }
+      }
+    },
+    "Lingua dell'app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App language"
           }
         }
       }
@@ -4848,12 +4872,12 @@
         }
       }
     },
-    "Nessun pagamento bancario con lo stesso importo entro ±%lld giorni.": {
+    "Nessun pagamento bancario compatibile nelle settimane dopo lo scontrino.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No bank payment with the same amount within ±%lld days."
+            "value": "No matching bank payment in the weeks after the receipt."
           }
         }
       }

@@ -28,16 +28,9 @@ struct ControlloFineMeseView: View {
     private var scontriniSenzaBanca: [Movimento] { movimenti.filter { $0.daConfermare && Abbinamento.attendeBanca($0) } }
     private var pagamentiSenzaScontrino: [Movimento] {
         movimenti.filter { m in
-            m.idEsterno != nil && m.scontrino == nil && m.tipo == .spesa
+            m.idEsterno != nil && m.scontrino == nil && m.tipo == .spesa && !m.daConfermare   // quelli da confermare stanno già sopra
                 && Self.categorieDaScontrino.contains { DatiIniziali.corrisponde(m.categoria?.nome, a: $0) }
         }
-    }
-
-    /// Movimenti bancari compatibili: stesso importo, data ±3 giorni, senza scontrino.
-    private func candidati(per m: Movimento) -> [Movimento] {
-        let g = Abbinamento.giorniTolleranza
-        return Contabilita.movimenti(da: m.data.aggiungendo(giorni: -g), a: m.data.aggiungendo(giorni: g + 1), in: context)
-            .filter { $0.idEsterno != nil && $0.scontrino == nil && abs($0.importo - m.importo) < 0.011 && $0.persistentModelID != m.persistentModelID }
     }
 
     private func salva() { try? context.save() }
@@ -52,8 +45,11 @@ struct ControlloFineMeseView: View {
     private func collega(_ m: Movimento, a banca: Movimento) {
         guard let s = m.scontrino else { return }
         s.movimento = banca
-        if banca.categoria == nil { banca.categoria = m.categoria }
-        banca.conferma()   // lo scontrino l'hai già controllato
+        // lo scontrino l'hai già controllato: la sua categoria vale più di quella indovinata dalla descrizione della banca.
+        // L'importo resta quello dell'addebito (mancia, valuta estera).
+        if let c = m.categoria { banca.categoria = c }
+        if banca.nota.isEmpty { banca.nota = m.nota }
+        banca.conferma()
         context.delete(m)
         salva()
     }
@@ -109,7 +105,7 @@ struct ControlloFineMeseView: View {
             if !scontrini.isEmpty {
                 Section {
                     ForEach(scontrini) { m in
-                        let compatibili = candidati(per: m)
+                        let compatibili = Abbinamento.pagamentiCollegabili(a: m, in: context)
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 12) {
                                 riga(m)
@@ -124,7 +120,7 @@ struct ControlloFineMeseView: View {
                                 Button("Era in contanti") { eraInContanti(m) }
                                 Menu("Collega a un pagamento") {
                                     ForEach(compatibili) { b in
-                                        Button("\(b.titolo.isEmpty ? b.tipo.etichetta : b.titolo) · \(b.data.giornoMese) · \(b.conto?.nome ?? "")") {
+                                        Button([b.titolo.isEmpty ? b.tipo.etichetta : b.titolo, b.data.giornoMese, b.importo.euro, b.conto?.nome ?? ""].joined(separator: " · ")) {
                                             collega(m, a: b)
                                         }
                                     }
@@ -134,7 +130,9 @@ struct ControlloFineMeseView: View {
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                             if compatibili.isEmpty {
-                                Text("Nessun pagamento bancario con lo stesso importo entro ±\(Abbinamento.giorniTolleranza) giorni.")
+                                Text(Abbinamento.giorni(da: m.data, a: Date()) <= Abbinamento.giorniAddebito
+                                     ? "L'addebito non è ancora arrivato: di solito arriva entro qualche giorno e si collega da solo."
+                                     : "Nessun pagamento bancario compatibile nelle settimane dopo lo scontrino.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

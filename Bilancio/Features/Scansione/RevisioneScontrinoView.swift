@@ -372,12 +372,14 @@ struct RevisioneScontrinoView: View {
             let m = Movimento(data: s.data, importo: -s.totale.centesimi, tipo: .spesa, titolo: negozio, origine: .scontrino,
                               // in contanti è confermato; con carta o conto lo conferma l'addebito della banca (o tu, a fine mese)
                               stato: contoScelto?.tipo == .contanti ? .confermato : .daConfermare, conto: contoScelto, categoria: prevalente)
+            // su un conto in valuta lo scontrino è in quella valuta
+            Contabilita.imposta(m, importoInValuta: -s.totale.centesimi, valuta: contoScelto?.valuta ?? "EUR")
             m.descrizioneOriginale = s.negozioLetto
             context.insert(m)
             scontrino.movimento = m
             if let c = contoScelto { ultimoConto = c.nome }
         }
-        if !s.negozioLetto.isEmpty {
+        if !s.negozioLetto.isEmpty, let prevalente {   // senza categoria non si impara nulla (cancellerebbe quella già imparata)
             Classificatore.impara(descrizioneBanca: s.negozioLetto, tipo: .spesa, categoria: prevalente, titolo: negozio, in: context)
         }
 

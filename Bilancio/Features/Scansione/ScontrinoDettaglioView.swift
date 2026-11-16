@@ -160,7 +160,10 @@ struct ScontrinoDettaglioView: View {
         eliminato = true
         let movimento = scontrino.movimento
         scontrino.movimento = nil
-        if conMovimento, let movimento { context.delete(movimento) }
+        if conMovimento, let movimento {
+            Sincronizzazione.ricordaEliminato(movimento)
+            context.delete(movimento)
+        }
         context.delete(scontrino)
         do {
             try context.save()
@@ -237,11 +240,12 @@ private struct ModificaScontrinoScansioneView: View {
         SalvataggioScansione.scriviRighe(righe, in: scontrino, context: context)
         if let m = scontrino.movimento {
             if let c = SalvataggioScansione.categoriaPrevalente(righe) { m.categoria = c }
-            // la spesa creata dallo scontrino segue lo scontrino; quella della banca resta com'è
-            if m.origine == .scontrino {
+            // la spesa creata dallo scontrino segue lo scontrino finché la banca non l'ha confermata:
+            // da lì in poi importo e data sono quelli dell'addebito
+            if m.origine == .scontrino && m.idEsterno == nil {
                 m.titolo = nome
                 m.data = data
-                m.importo = -totale.centesimi
+                Contabilita.imposta(m, importoInValuta: -totale.centesimi, valuta: m.conto?.valuta ?? "EUR")
             }
         }
         do {

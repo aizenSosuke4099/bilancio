@@ -48,6 +48,16 @@ struct ImpostazioniView: View {
                 NavigationLink { BackupView() } label: { Label("Backup", systemImage: "externaldrive") }
             }
 
+            Section {
+                Button("Lingua dell'app") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                }
+            } header: {
+                Text("Lingua")
+            } footer: {
+                Text("Bilancio segue la lingua dell'iPhone: italiano o inglese (con le altre lingue resta in italiano). Per sceglierla solo per questa app apri le impostazioni di iOS da qui e tocca Lingua: la voce compare se l'iPhone ha almeno due lingue preferite.")
+            }
+
             Section("Informazioni") {
                 LabeledContent("Versione", value: versione)
             }
@@ -108,6 +118,7 @@ struct ImpostazioniView: View {
         elimina(Movimento.self); elimina(Ricorrenza.self); elimina(SnapshotPatrimonio.self); elimina(ConnessioneBanca.self); elimina(ProfiloImport.self)
         elimina(Conto.self); elimina(Categoria.self)
         try? context.save()
+        Sincronizzazione.eliminati = []
         DatiIniziali.inserisciSeVuoto(context)
         messaggio = String(localized: "Dati cancellati.")
     }

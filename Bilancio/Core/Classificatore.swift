@@ -94,7 +94,8 @@ enum Classificatore {
     static func suggerisciBanca(descrizione: String, importo: Double, in context: ModelContext) -> Suggerimento {
         let titoloPulito = titolo(da: descrizione)
         if let r = regola(chiave: chiaveBanca(descrizione), ambito: .descrizioneBanca, in: context),
-           let tipo = r.tipoRaw.flatMap(TipoMovimento.init(rawValue:)) {
+           let tipo = r.tipoRaw.flatMap(TipoMovimento.init(rawValue:)),
+           !(tipo == .entrata && importo < 0) {   // "Bonifico da Mario" imparato come entrata non vale per "Bonifico a Mario"
             return Suggerimento(tipo: tipo, categoria: r.categoria, titolo: r.titolo ?? titoloPulito, appreso: true,
                                 prelievoContanti: tipo == .giroconto && contiene(normalizza(descrizione), paroleChiavePrelievo))
         }
@@ -126,7 +127,7 @@ enum Classificatore {
         return parole.contains { t.contains(" \($0) ") }
     }
 
-    static let paroleChiavePrelievo = ["prelievo", "prelevamento", "prel", "atm", "cash withdrawal", "withdrawal", "prelievo contanti"]
+    static let paroleChiavePrelievo = ["prelievo", "prelevamento", "prel", "cash withdrawal", "withdrawal", "prelievo contanti"]   // non "atm" da solo: è anche la metro di Milano
 
     /// Parole chiave → tipo e categoria. L'ordine conta: vince la prima che corrisponde.
     static let tabella: [([String], TipoMovimento, String?)] = [

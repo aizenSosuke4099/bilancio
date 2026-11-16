@@ -5,31 +5,76 @@ import SwiftData
 /// così una spesa non viene contata due volte.
 enum Abbinamento {
 
-    /// Tolleranza sulla data (giorni) tra scontrino e addebito.
+    /// Tolleranza sulla data (giorni) tra un movimento previsto (ricorrenza, PAC, inserito a mano) e l'addebito,
+    /// e tra le due metà di un giroconto.
     static let giorniTolleranza = 3
+    /// Tra uno scontrino e il suo addebito: la banca contabilizza dopo l'acquisto, mai prima (carta usata il venerdì
+    /// sera, ponte, carta di credito). Un giorno di margine all'indietro per gli acquisti a cavallo della mezzanotte.
+    static let giorniAddebito = 10
+    /// «Collega a un pagamento» lo decide l'utente: finestra larga e importo anche un po' diverso (mancia, valuta estera).
+    static let giorniCollegamento = 45
+    static let scartoCollegamento = 0.20
+
+    /// Giorni di calendario da `a` a `b` (positivo se `b` viene dopo): le ore non contano.
+    static func giorni(da a: Date, a b: Date) -> Int {
+        calendario.dateComponents([.day], from: calendario.startOfDay(for: a), to: calendario.startOfDay(for: b)).day ?? 0
+    }
+
+    /// Importo nella valuta del conto: gli abbinamenti confrontano quello (il controvalore in euro cambia col cambio del giorno).
+    static func nelConto(_ m: Movimento) -> Double { m.valutaOriginale != nil ? (m.importoOriginale ?? m.importo) : m.importo }
+
+    /// Pagamento arrivato dalla banca o da un estratto, ancora senza scontrino (non un giroconto né un prelievo).
+    private static func pagamentoLibero(_ m: Movimento) -> Bool {
+        m.idEsterno != nil && m.scontrino == nil && m.tipo == .spesa && m.conto != nil && m.conto?.tipo != .contanti
+    }
 
     /// Movimento arrivato dalla banca/estratto, senza scontrino, compatibile con uno scontrino appena scansionato.
     static func movimentoBancaPer(totale: Double, data: Date, in context: ModelContext) -> Movimento? {
-        let da = data.aggiungendo(giorni: -giorniTolleranza)
-        let a = data.aggiungendo(giorni: giorniTolleranza + 1)
-        let candidati = Contabilita.movimenti(da: da, a: a, in: context).filter {
-            $0.scontrino == nil && $0.idEsterno != nil && abs($0.importo + totale) < 0.011
+        let giorno = calendario.startOfDay(for: data)
+        let candidati = Contabilita.movimenti(da: giorno.aggiungendo(giorni: -1), a: giorno.aggiungendo(giorni: giorniAddebito + 1), in: context).filter {
+            pagamentoLibero($0) && abs(nelConto($0) + totale) < 0.011
         }
         return candidati.min { abs($0.data.timeIntervalSince(data)) < abs($1.data.timeIntervalSince(data)) }
     }
 
-    /// Movimento creato a mano/da scontrino/da ricorrenza/da PAC che corrisponde a un movimento bancario in arrivo.
-    /// Se lo trova, la sincronizzazione lo aggiorna invece di crearne uno nuovo.
-    static func movimentoEsistentePer(importo: Double, data: Date, conto: Conto?, in context: ModelContext) -> Movimento? {
-        let da = data.aggiungendo(giorni: -giorniTolleranza)
-        let a = data.aggiungendo(giorni: giorniTolleranza + 1)
-        let candidati = Contabilita.movimenti(da: da, a: a, in: context).filter { m in
-            m.idEsterno == nil
-                && abs(m.importo - importo) < 0.011
+    /// Movimento creato a mano/da scontrino/da ricorrenza/da PAC che corrisponde a un movimento bancario in arrivo
+    /// (`importo` nella valuta del conto). Se lo trova, la sincronizzazione lo completa invece di crearne uno nuovo.
+    /// Uno scontrino può precedere l'addebito fino a `giorniAddebito` giorni; gli altri stanno entro ±`giorniTolleranza`.
+    static func movimentoEsistentePer(importo: Double, data: Date, conto: Conto?, escludendo usati: Set<PersistentIdentifier> = [],
+                                      in context: ModelContext) -> Movimento? {
+        let giorno = calendario.startOfDay(for: data)
+        let candidati = Contabilita.movimenti(da: giorno.aggiungendo(giorni: -giorniAddebito), a: giorno.aggiungendo(giorni: giorniTolleranza + 1), in: context).filter { m in
+            let dopo = giorni(da: m.data, a: data)   // quanti giorni dopo il movimento arriva la banca
+            return m.idEsterno == nil
+                && !usati.contains(m.persistentModelID)
+                && abs(nelConto(m) - importo) < 0.011
                 && m.conto?.tipo != .contanti
                 && (m.conto == nil || conto == nil || m.conto?.persistentModelID == conto?.persistentModelID)
+                && (m.scontrino != nil ? (-1...giorniAddebito).contains(dopo) : abs(dopo) <= giorniTolleranza)
         }
         return candidati.min { abs($0.data.timeIntervalSince(data)) < abs($1.data.timeIntervalSince(data)) }
+    }
+
+    /// La stessa transazione già importata da un estratto conto (`idEsterno` "file:…") sullo stesso conto: quando arriva
+    /// anche dalla banca collegata prende l'id della banca, invece di diventare un doppione.
+    static func movimentoDaEstratto(importo: Double, data: Date, conto: Conto?, in context: ModelContext) -> Movimento? {
+        guard let conto else { return nil }
+        let giorno = calendario.startOfDay(for: data)
+        return Contabilita.movimenti(da: giorno.aggiungendo(giorni: -giorniTolleranza), a: giorno.aggiungendo(giorni: giorniTolleranza + 1), in: context)
+            .filter { ($0.idEsterno ?? "").hasPrefix("file:") && $0.conto?.persistentModelID == conto.persistentModelID && abs(nelConto($0) - importo) < 0.011 }
+            .min { abs($0.data.timeIntervalSince(data)) < abs($1.data.timeIntervalSince(data)) }
+    }
+
+    /// Pagamenti della banca che l'utente può collegare a mano allo scontrino di `m`: senza scontrino, da pochi giorni prima
+    /// a `giorniCollegamento` dopo, con importo uguale o vicino. Prima quelli con l'importo più simile.
+    static func pagamentiCollegabili(a m: Movimento, in context: ModelContext) -> [Movimento] {
+        let giorno = calendario.startOfDay(for: m.data)
+        let atteso = abs(nelConto(m))
+        func scarto(_ b: Movimento) -> Double { abs(abs(nelConto(b)) - atteso) }
+        return Contabilita.movimenti(da: giorno.aggiungendo(giorni: -giorniTolleranza), a: giorno.aggiungendo(giorni: giorniCollegamento + 1), in: context)
+            .filter { pagamentoLibero($0) && $0.importo < 0 && $0.persistentModelID != m.persistentModelID
+                && scarto($0) <= max(0.011, atteso * scartoCollegamento) }
+            .sorted { scarto($0) < scarto($1) }
     }
 
     /// Scontrino pagato con carta o conto che la banca non ha ancora confermato (nessun addebito abbinato).
@@ -48,23 +93,41 @@ enum Abbinamento {
         UserDefaults.standard.set(true, forKey: chiave)
     }
 
-    /// Giroconto tra conti propri (ricarica di un conto online, bonifico al conto deposito, saldo della carta di credito…): cerca su un ALTRO conto
-    /// lo stesso importo con segno opposto entro ±giorniTolleranza. Se lo trova, segna entrambi come giroconto,
-    /// così non gonfiano entrate e spese. Le scelte già confermate dall'utente (non giroconto) non si toccano.
-    static func segnaGiroconto(_ m: Movimento, in context: ModelContext) {
-        guard let conto = m.conto, conto.tipo != .contanti, m.importo != 0 else { return }
-        let candidati = Contabilita.movimenti(da: m.data.aggiungendo(giorni: -giorniTolleranza),
-                                              a: m.data.aggiungendo(giorni: giorniTolleranza + 1), in: context).filter { c in
+    /// Classificato solo dal segno (nessuna parola chiave, nessuna regola imparata): l'unico caso in cui un'entrata o una
+    /// spesa può diventare giroconto perché sull'altro conto c'è la cifra opposta. Uno stipendio e un affitto uguali no.
+    static func generico(_ m: Movimento) -> Bool {
+        guard m.tipo == .spesa || m.tipo == .entrata else { return false }   // un investimento riconosciuto resta tale
+        return m.categoria == nil || ["Altro", "Altre entrate"].contains { DatiIniziali.corrisponde(m.categoria?.nome, a: $0) }
+    }
+
+    /// L'altra metà di un possibile giroconto: lo stesso importo (in euro) con segno opposto su un ALTRO conto entro
+    /// ±giorniTolleranza. Vale se è già un giroconto, oppure se è ancora da confermare e classificata solo dal segno:
+    /// le scelte confermate dall'utente e ciò che le parole chiave hanno riconosciuto non si toccano.
+    static func controparte(importo: Double, valuta: String?, data: Date, conto: Conto, escluso: Movimento? = nil, in context: ModelContext) -> Movimento? {
+        guard conto.tipo != .contanti, importo != 0 else { return nil }
+        let vicini = Contabilita.movimenti(da: data.aggiungendo(giorni: -giorniTolleranza), a: data.aggiungendo(giorni: giorniTolleranza + 1), in: context)
+            .filter { $0.persistentModelID != escluso?.persistentModelID && $0.conto != nil && $0.conto?.tipo != .contanti }
+        func opposto(_ c: Movimento, a importo: Double, _ valuta: String?, _ conto: Conto) -> Bool {
             // tra valute diverse (es. EUR → CHF) il cambio della banca non coincide col nostro: 3% di margine
-            let margine = m.valutaOriginale != c.valutaOriginale ? max(0.011, abs(m.importo) * 0.03) : 0.011
-            return c.persistentModelID != m.persistentModelID
-                && abs(c.importo + m.importo) < margine
-                && c.conto != nil && c.conto?.tipo != .contanti
-                && c.conto?.persistentModelID != conto.persistentModelID
-                && (c.tipo == .giroconto || c.daConfermare)
+            let margine = valuta != c.valutaOriginale ? max(0.011, abs(importo) * 0.03) : 0.011
+            return abs(c.importo + importo) < margine && c.conto?.persistentModelID != conto.persistentModelID
+        }
+        let candidati = vicini.filter { c in
+            guard opposto(c, a: importo, valuta, conto), c.tipo == .giroconto || (c.daConfermare && generico(c)) else { return false }
+            // ponytail: un giroconto che ha già la sua altra metà non ne prende una seconda (terza cifra uguale su un terzo conto);
+            // la metà già presente si cerca solo tra i movimenti vicini a questa data
+            guard c.tipo == .giroconto, let contoC = c.conto else { return true }
+            return !vicini.contains { $0.persistentModelID != c.persistentModelID && $0.tipo == .giroconto && opposto($0, a: c.importo, c.valutaOriginale, contoC) }
         }
         // ponytail: vince la data più vicina; due ricariche identiche nello stesso giorno possono incrociarsi, i totali non cambiano
-        guard let c = candidati.min(by: { abs($0.data.timeIntervalSince(m.data)) < abs($1.data.timeIntervalSince(m.data)) }) else { return }
+        return candidati.min(by: { abs($0.data.timeIntervalSince(data)) < abs($1.data.timeIntervalSince(data)) })
+    }
+
+    /// Giroconto tra conti propri (ricarica di un conto online, bonifico al conto deposito, saldo della carta di credito…):
+    /// se sull'altro conto c'è la `controparte`, segna entrambi come giroconto, così non gonfiano entrate e spese.
+    static func segnaGiroconto(_ m: Movimento, in context: ModelContext) {
+        guard let conto = m.conto,
+              let c = controparte(importo: m.importo, valuta: m.valutaOriginale, data: m.data, conto: conto, escluso: m, in: context) else { return }
         for x in [m, c] where x.tipo != .giroconto {
             x.tipo = .giroconto
             x.categoria = nil
@@ -139,6 +202,54 @@ enum Abbinamento {
         assert(attendeBanca(pagato))
         let addebito = arriva(-12.34, "POS BAR", corrente, giorni: 1)
         assert(addebito === pagato && !pagato.daConfermare && !attendeBanca(pagato), "scontrino non confermato dalla banca")
+        // addebito contabilizzato 6 giorni dopo lo scontrino (venerdì sera, ponte): si uniscono lo stesso; un addebito di due giorni PRIMA no
+        func scontrinoCarta(_ totale: Double, giorni: Int) -> Movimento {
+            let s = Scontrino(negozio: "Negozio", data: oggi.aggiungendo(giorni: giorni), totale: totale)
+            ctx.insert(s)
+            let m = Movimento(data: s.data, importo: -totale, tipo: .spesa, titolo: "Negozio", origine: .scontrino, stato: .daConfermare, conto: corrente)
+            ctx.insert(m)
+            s.movimento = m
+            return m
+        }
+        let tardi = scontrinoCarta(23.45, giorni: -6)
+        assert(arriva(-23.45, "POS NEGOZIO", corrente) === tardi && !tardi.daConfermare, "addebito 6 giorni dopo lo scontrino")
+        let dopo = scontrinoCarta(34.56, giorni: 2)
+        assert(arriva(-34.56, "POS ALTRO", corrente) !== dopo && dopo.daConfermare, "un addebito non precede lo scontrino")
+        // collegamento a mano: importo vicino (mancia, valuta estera) anche 20 giorni dopo
+        let mancia = scontrinoCarta(50, giorni: -20)
+        let conMancia = arriva(-55, "POS RISTORANTE", corrente, giorni: -1)
+        assert(pagamentiCollegabili(a: mancia, in: ctx).contains { $0 === conMancia }, "collegabili: \(pagamentiCollegabili(a: mancia, in: ctx).map(\.importo))")
+        // la stessa transazione importata da un estratto conto e poi arrivata dalla banca collegata: niente doppione
+        Sincronizzazione.creaMovimento(data: oggi, importo: -61.7, descrizione: "POS LIBRERIA", idEsterno: "file:prova", conto: corrente, origine: .estratto,
+                                       suggerimento: Classificatore.suggerisciBanca(descrizione: "POS LIBRERIA", importo: -61.7, in: ctx), stato: .confermato, in: ctx)
+        let daFile = try! ctx.fetch(FetchDescriptor<Movimento>(predicate: #Predicate { $0.importo == -61.7 }))
+        assert(daFile.count == 1 && arriva(-61.7, "PAGAMENTO POS LIBRERIA", corrente, giorni: 1) === daFile[0])
+        assert(try! ctx.fetchCount(FetchDescriptor<Movimento>(predicate: #Predicate { $0.importo == -61.7 })) == 1, "doppione tra estratto e banca")
+        // movimento della banca eliminato dall'utente: alla sincronizzazione successiva non ricompare
+        let eliminatiPrima = Sincronizzazione.eliminati
+        defer { Sincronizzazione.eliminati = eliminatiPrima }
+        let daEliminare = arriva(-9.99, "POS EDICOLA", corrente)
+        let idEliminato = daEliminare.idEsterno!
+        Sincronizzazione.ricordaEliminato(daEliminare)
+        ctx.delete(daEliminare)
+        try! ctx.save()
+        assert(!Sincronizzazione.registraMovimento(data: oggi, importo: -9.99, descrizione: "POS EDICOLA", idEsterno: idEliminato, conto: corrente, origine: .banca, in: ctx))
+        assert(try! ctx.fetchCount(FetchDescriptor<Movimento>(predicate: #Predicate { $0.importo == -9.99 })) == 0, "il movimento eliminato è ricomparso")
+        // le due metà di un bonifico tra conti propri con lo stesso id della banca restano due movimenti (e sono un giroconto)
+        Sincronizzazione.registraMovimento(data: oggi, importo: -77, descrizione: "BONIFICO INTERNO", idEsterno: "stesso-id", conto: corrente, origine: .banca, in: ctx)
+        Sincronizzazione.registraMovimento(data: oggi, importo: 77, descrizione: "BONIFICO INTERNO", idEsterno: "stesso-id", conto: deposito, origine: .banca, in: ctx)
+        let stessoId: String? = "stesso-id"
+        let meta = try! ctx.fetch(FetchDescriptor<Movimento>(predicate: #Predicate { $0.idEsterno == stessoId }))
+        assert(meta.count == 2 && meta.allSatisfy { $0.tipo == .giroconto }, "metà del bonifico: \(meta.map(\.importo))")
+        // una spesa riconosciuta dalle parole chiave non diventa giroconto perché sull'altro conto arriva un'entrata uguale
+        DatiIniziali.inserisciSeVuoto(ctx)   // servono le categorie: è la categoria a dire che una parola chiave l'ha riconosciuta
+        let spesaVera = arriva(-48, "ESSELUNGA", corrente, giorni: -9), entrataVera = arriva(48, "Bonifico Luigi", deposito, giorni: -8)
+        assert(spesaVera.tipo == .spesa && entrataVera.tipo == .entrata, "falso giroconto")
+        // classificatore: la metro di Milano non è un prelievo; una regola imparata su un'entrata non vale per un'uscita
+        assert(Classificatore.suggerisciBanca(descrizione: "ATM MILANO", importo: -2.2, in: ctx).tipo == .spesa)
+        Classificatore.impara(descrizioneBanca: "Bonifico Mario Rossi", tipo: .entrata, categoria: nil, titolo: "Mario", in: ctx)
+        assert(Classificatore.suggerisciBanca(descrizione: "Bonifico Mario Rossi", importo: 30, in: ctx).tipo == .entrata)
+        assert(Classificatore.suggerisciBanca(descrizione: "Bonifico Mario Rossi", importo: -30, in: ctx).tipo == .spesa, "entrata con importo negativo")
         // i giroconti non entrano nei totali
         let t = Contabilita.totali([uscita, entrata, a, b])
         assert(t.entrate == 0 && t.spese == 0)
@@ -162,6 +273,15 @@ enum Abbinamento {
         assert(costo?.importo == -15.6 && costo?.tipo == .spesa && costo?.conto == nil, "costo del cambio: \(String(describing: costo?.importo))")
         assert(DatiIniziali.corrisponde(costo?.categoria?.nome, a: "Commissioni bancarie"))
         assert(abs(Contabilita.saldo(corrente) - Contabilita.saldoInValuta(corrente)) < 0.001)   // il costo non tocca i saldi
+        // scontrino in franchi sul conto svizzero: si unisce all'addebito in franchi anche se i due controvalori in euro differiscono
+        let scontrinoCH = Scontrino(negozio: "Panetteria", data: oggi, totale: 8.5)
+        ctx.insert(scontrinoCH)
+        let pagatoCH = Movimento(data: oggi, importo: 0, tipo: .spesa, titolo: "Panetteria", origine: .scontrino, stato: .daConfermare, conto: svizzero)
+        Contabilita.imposta(pagatoCH, importoInValuta: -8.5, valuta: "CHF")
+        pagatoCH.importo -= 0.03   // come se fosse stato convertito col cambio di un altro giorno
+        ctx.insert(pagatoCH)
+        scontrinoCH.movimento = pagatoCH
+        assert(arriva(-8.5, "KARTE PANETTERIA", svizzero, giorni: 1) === pagatoCH && pagatoCH.importoOriginale == -8.5, "scontrino in franchi")
         print("Abbinamento.autoverifica OK")
     }
     #endif

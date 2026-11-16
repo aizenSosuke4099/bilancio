@@ -247,9 +247,7 @@ struct BancheView: View {
     private func elimina(_ c: ConnessioneBanca) {
         let id = c.sessionId
         Task { try? await EnableBanking.eliminaSessione(id) }
-        for conto in conti where conto.ebAccountUid.map(c.accountUids.contains) ?? false {
-            conto.ebAccountUid = nil
-        }
+        for conto in conti where conto.ebAccountUid.map(c.accountUids.contains) ?? false { Sincronizzazione.scollega(conto) }
         Sincronizzazione.registraErrore(nil, per: c)
         context.delete(c)
         try? context.save()
@@ -482,7 +480,7 @@ fileprivate struct AbbinamentoContiView: View {
         for vecchia in connessioni where vecchia.banca == banca.name && vecchia.sessionId != sessione.session_id {
             let id = vecchia.sessionId
             Task { try? await EnableBanking.eliminaSessione(id) }
-            for c in conti where c.ebAccountUid.map(vecchia.accountUids.contains) ?? false { c.ebAccountUid = nil }
+            for c in conti where c.ebAccountUid.map(vecchia.accountUids.contains) ?? false { Sincronizzazione.scollega(c) }
             Sincronizzazione.registraErrore(nil, per: vecchia)
             context.delete(vecchia)
         }

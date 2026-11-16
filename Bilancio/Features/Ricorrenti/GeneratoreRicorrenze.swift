@@ -16,7 +16,7 @@ enum GeneratoreRicorrenze {
                 // se la banca ha già portato lo stesso pagamento, lo collego invece di duplicarlo
                 let giaArrivato = Contabilita.movimenti(da: data.aggiungendo(giorni: -Abbinamento.giorniTolleranza),
                                                         a: data.aggiungendo(giorni: Abbinamento.giorniTolleranza + 1), in: context).first { m in
-                    m.idEsterno != nil && m.ricorrenza == nil && abs(m.importo - r.importo) < 0.011
+                    m.idEsterno != nil && m.ricorrenza == nil && abs(Abbinamento.nelConto(m) - r.importo) < 0.011
                         && (r.conto == nil || m.conto?.persistentModelID == r.conto?.persistentModelID)
                 }
                 if let giaArrivato {
@@ -25,6 +25,7 @@ enum GeneratoreRicorrenze {
                 }
                 let m = Movimento(data: data, importo: r.importo, tipo: r.tipo, titolo: r.nome, origine: .ricorrente,
                                   stato: .daConfermare, conto: r.conto, categoria: r.categoria)
+                Contabilita.imposta(m, importoInValuta: r.importo, valuta: r.conto?.valuta ?? "EUR")   // l'importo è nella valuta del conto
                 m.ricorrenza = r
                 context.insert(m)
             }

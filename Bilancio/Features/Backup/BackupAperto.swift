@@ -33,6 +33,8 @@ enum BackupAperto {
         var snapshotPatrimonio: [SnapshotJ] = []
         var connessioniBanca: [ConnessioneJ] = []
         var profiliImport: [ProfiloJ] = []
+        /// Id delle transazioni di banca/estratto eliminate dall'utente: dopo un ripristino non devono ricomparire.
+        var idEliminati: [String]?
     }
 
     struct ContoJ: Codable {
@@ -185,6 +187,8 @@ enum BackupAperto {
                                                  formatoData: $0.formatoData, virgolaDecimale: $0.virgolaDecimale,
                                                  invertiSegno: $0.invertiSegno, conto: rif($0.conto)) }
 
+        a.idEliminati = Sincronizzazione.eliminati.sorted()
+
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         encoder.dateEncodingStrategy = .iso8601
@@ -321,6 +325,7 @@ enum BackupAperto {
             ctx.insert(p); p.conto = j.conto.flatMap { conti[$0] }
         }
         try ctx.save()
+        Sincronizzazione.eliminati.formUnion(a.idEliminati ?? [])
         return fotoMancanti
     }
 

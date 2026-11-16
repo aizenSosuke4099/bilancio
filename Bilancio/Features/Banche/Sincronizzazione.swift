@@ -102,14 +102,19 @@ enum Sincronizzazione {
     @discardableResult
     static func registraMovimento(data: Date, importo: Double, descrizione: String, idEsterno: String, conto: Conto?,
                                   origine: Origine, in context: ModelContext) -> Bool {
+        // eliminato dall'utente: la banca lo rimanda a ogni sincronizzazione, non deve ricomparire
+        if eliminati.contains(idEsterno) { return false }
         let idOpzionale: String? = idEsterno
-        var d = FetchDescriptor<Movimento>(predicate: #Predicate { $0.idEsterno == idOpzionale })
-        d.fetchLimit = 1
-        if ((try? context.fetchCount(d)) ?? 0) > 0 { return false }
+        let stessoId = (try? context.fetch(FetchDescriptor<Movimento>(predicate: #Predicate { $0.idEsterno == idOpzionale }))) ?? []
+        // già registrato. Solo le due metà di un bonifico tra conti propri (altro conto, altro importo) possono avere lo stesso id.
+        if stessoId.contains(where: { $0.conto?.persistentModelID == conto?.persistentModelID || abs(Abbinamento.nelConto($0) - importo) < 0.011 }) { return false }
 
-        // importo nella valuta del conto; gli abbinamenti ragionano in euro
-        if let esistente = Abbinamento.movimentoEsistentePer(importo: Contabilita.inEuro(importo, valuta: conto?.valuta ?? "EUR"),
-                                                              data: data, conto: conto, in: context) {
+        // gli abbinamenti confrontano l'importo nella valuta del conto
+        if origine == .banca, let importato = Abbinamento.movimentoDaEstratto(importo: importo, data: data, conto: conto, in: context) {
+            importato.idEsterno = idEsterno
+            return false
+        }
+        if let esistente = Abbinamento.movimentoEsistentePer(importo: importo, data: data, conto: conto, in: context) {
             esistente.idEsterno = idEsterno
             esistente.descrizioneOriginale = descrizione
             if esistente.conto == nil { esistente.conto = conto }
@@ -133,14 +138,40 @@ enum Sincronizzazione {
         m.idEsterno = idEsterno
         m.descrizioneOriginale = descrizione
         context.insert(m)
-        // l'altra metà di un giroconto tra conti propri (se una regola imparata dice altro, vince la regola)
-        if s.tipo == .giroconto || !s.appreso { Abbinamento.segnaGiroconto(m, in: context) }
+        // l'altra metà di un giroconto tra conti propri: si cerca solo se è già un giroconto o se nulla l'ha riconosciuto
+        // (una regola imparata o una parola chiave vincono sull'abbinamento)
+        if s.tipo == .giroconto || (!s.appreso && Abbinamento.generico(m)) { Abbinamento.segnaGiroconto(m, in: context) }
         if s.prelievoContanti && importo < 0 {
             let contanti = Movimento(data: data, importo: -m.importo, tipo: .giroconto, titolo: String(localized: "Prelievo"), origine: origine,
                                      stato: .confermato, conto: DatiIniziali.contoContanti(in: context))
             contanti.descrizioneOriginale = descrizione
             context.insert(contanti)
         }
+    }
+
+    // MARK: Movimenti eliminati e conti scollegati
+
+    /// Id delle transazioni di banca/estratto che l'utente ha eliminato (viaggiano anche nel backup).
+    static var eliminati: Set<String> {
+        get { Set(UserDefaults.standard.stringArray(forKey: "banche.idEliminati") ?? []) }
+        set { UserDefaults.standard.set(newValue.sorted(), forKey: "banche.idEliminati") }
+    }
+
+    /// Da chiamare prima di eliminare un movimento: se viene dalla banca, la prossima sincronizzazione non lo ricrea.
+    static func ricordaEliminato(_ m: Movimento) {
+        guard let id = m.idEsterno, !id.hasPrefix("costo-cambio:") else { return }
+        eliminati.insert(id)
+    }
+
+    /// Il conto non è più collegato alla banca: il saldo torna a essere calcolato dai movimenti, ripartendo dall'ultimo
+    /// letto dalla banca (altrimenti resterebbe fermo per sempre a quel valore).
+    static func scollega(_ conto: Conto) {
+        if let b = conto.saldoBanca {
+            conto.saldoIniziale = (b - conto.movimenti.reduce(0) { $0 + ($1.importoOriginale ?? $1.importo) }).centesimi
+        }
+        conto.saldoBanca = nil
+        conto.saldoBancaData = nil
+        conto.ebAccountUid = nil
     }
 
     // MARK: Errori (mostrati in BancheView)

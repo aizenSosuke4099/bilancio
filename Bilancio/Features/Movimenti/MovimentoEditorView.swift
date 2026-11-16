@@ -226,6 +226,7 @@ struct MovimentoEditorView: View {
 
     private func elimina() {
         guard let m = movimento else { return }
+        Sincronizzazione.ricordaEliminato(m)
         context.delete(m)
         do {
             try context.save()
