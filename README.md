@@ -283,6 +283,10 @@ sono sia l'importo nella valuta dell'acquisto sia quello in euro, sceglie quello
 diventano movimenti. **Se qualche riga ha una data o un importo che non riesce a leggere, la schermata *Colonne* lo dice in
 arancione**: controlla il formato della data prima di continuare.
 
+Negli estratti delle **carte di credito** gli acquisti sono scritti in positivo: quando quasi tutti gli importi lo sono, l'app
+accende da sola «Inverti il segno» e lo spiega nella schermata *Colonne*. Guarda la prova: le spese devono essere nere, le
+entrate verdi.
+
 Nell'anteprima, un movimento che ha già la sua metà su un altro conto (il saldo mensile della carta pagato dal conto corrente, una
 ricarica) viene proposto come **giroconto**. Su un conto in valuta gli importi restano nella valuta del conto.
 

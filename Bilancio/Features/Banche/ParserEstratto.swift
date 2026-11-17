@@ -167,6 +167,12 @@ enum ParserEstratto {
             }
         }
         m.virgolaDecimale = virgole == punti ? separatore == ";" : virgole > punti
+        // Estratti delle carte di credito: gli acquisti sono scritti in positivo. Se quasi tutti gli importi lo sono si propone
+        // di invertire il segno (si vede nella schermata delle colonne, dove si può spegnere): altrimenti le spese entrerebbero come entrate.
+        if let c = m.colImporto {
+            let importi = dati.compactMap { $0.indices.contains(c) ? leggiImporto($0[c], virgolaDecimale: m.virgolaDecimale) : nil }.filter { $0 != 0 }
+            m.invertiSegno = importi.count >= 5 && Double(importi.filter { $0 > 0 }.count) >= 0.8 * Double(importi.count)
+        }
         return m
     }
 
@@ -469,6 +475,13 @@ enum ParserEstratto {
         precondition(movM[0].descrizione == "MONITOR 24\" NERO")
         precondition(ParserEstratto.leggiImporto("CHF -45.20", virgolaDecimale: false) == -45.20 && ParserEstratto.leggiImporto("5'850.00 CHF", virgolaDecimale: false) == 5850)
         precondition(ParserEstratto.leggiImporto("12,30 DR", virgolaDecimale: true) == -12.30 && ParserEstratto.leggiImporto("12,30 CR", virgolaDecimale: true) == 12.30)
+
+        // estratto di una carta di credito: acquisti in positivo, quindi si propone da solo di invertire il segno
+        let acquisti = "Data;Descrizione;Importo\n" + (1...6).map { "0\($0)/10/2026;NEGOZIO \($0);\($0)0,00" }.joined(separator: "\n") + "\n07/10/2026;RIMBORSO;-5,00\n"
+        let righeA = ParserEstratto.righeCSV(acquisti, separatore: ";")
+        let mA = ParserEstratto.proponiMappatura(righe: righeA, separatore: ";")
+        precondition(mA.invertiSegno && ParserEstratto.applica(mA, righe: righeA).map(\.importo) == [-10, -20, -30, -40, -50, -60, 5], "carta con acquisti in positivo: \(mA)")
+        precondition(!mR.invertiSegno && !mT.invertiSegno)
 
         // una data scritta in un modo non previsto non fa sparire le righe in silenzio: vengono contate
         var sbagliata = mI

@@ -169,12 +169,16 @@ struct ImportaEstrattoView: View {
                     pickerColonna("Accrediti (Avere)", selezione: Binding(get: { mappatura.colAccredito ?? 0 }, set: { mappatura.colAccredito = $0 }))
                 }
             }
-            Section("Formato") {
+            Section {
                 Picker("Data", selection: $mappatura.formatoData) {
                     ForEach(ParserEstratto.formatiData, id: \.self) { Text($0.replacingOccurrences(of: "yyyy", with: String(localized: "aaaa", comment: "anno a 4 cifre nel formato data")).replacingOccurrences(of: "yy", with: String(localized: "aa", comment: "anno a 2 cifre nel formato data")).replacingOccurrences(of: "dd", with: String(localized: "gg", comment: "giorno nel formato data"))).tag($0) }
                 }
                 Toggle("Virgola per i decimali (1.234,56)", isOn: $mappatura.virgolaDecimale)
                 Toggle("Inverti il segno (carte: positivo = spesa)", isOn: $mappatura.invertiSegno)
+            } header: { Text("Formato") } footer: {
+                if mappatura.invertiSegno {
+                    Text("Con «Inverti il segno» gli importi positivi del file diventano spese, come negli estratti delle carte di credito. Lo accendo da solo quando quasi tutti gli importi sono positivi: guarda la prova qui sotto e spegnilo se sono entrate.")
+                }
             }
             Section {
                 ForEach(Array(prova.prefix(5).enumerated()), id: \.offset) { _, r in

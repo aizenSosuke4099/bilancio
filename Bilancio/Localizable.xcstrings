@@ -2061,6 +2061,16 @@
         }
       }
     },
+    "Con «Inverti il segno» gli importi positivi del file diventano spese, come negli estratti delle carte di credito. Lo accendo da solo quando quasi tutti gli importi sono positivi: guarda la prova qui sotto e spegnilo se sono entrate.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With “Invert sign” on, positive amounts in the file become expenses, as in credit card statements. I turn it on automatically when almost all amounts are positive: look at the preview below and turn it off if they are income."
+          }
+        }
+      }
+    },
     "Concesso": {
       "localizations": {
         "en": {
