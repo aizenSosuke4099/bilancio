@@ -95,7 +95,7 @@ Altro da sapere:
 |---|---|---|
 | Database (movimenti, conti, scontrini, investimenti…) | iPhone, cartella privata dell'app (SwiftData) | cifrato da iOS, illeggibile a telefono bloccato |
 | Foto degli scontrini | file separati nella cartella del database | stessa protezione del database |
-| Backup locali | iPhone, *File › Sul mio iPhone › Bilancio › Backup* | uno a settimana, si tengono gli ultimi 4; in chiaro ([Sicurezza](#sicurezza)) |
+| Backup locali | iPhone, dentro l'app (*Altro › Backup*) | uno a settimana, si tengono gli ultimi 4; non compaiono nell'app File ([Sicurezza](#sicurezza)) |
 | Backup esportati | dove li salvi tu (iCloud Drive, Google Drive, Mac) | cifrati con la **tua password** |
 | Chiave privata Enable Banking (`.pem`) | Portachiavi dell'iPhone (solo quel telefono) + **copia nel gestore di password** | senza, l'app non può leggere le banche |
 | Application ID Enable Banking | Portachiavi dell'iPhone + gestore di password + Control Panel di Enable Banking | non è segreto, ma serve |
@@ -436,9 +436,9 @@ descritto in `LEGGIMI.txt`, la cifratura usa algoritmi standard disponibili anch
 Cosa resta (scelte consapevoli):
 
 - la chiave privata vive sul telefono (inevitabile per un'app senza server);
-- i **backup locali** sono in chiaro e visibili nell'app File: comodo se l'app non si apre, ma chi ha il telefono **sbloccato** in
-  mano li legge senza passare da Face ID. Rimedio senza toccare il codice: bloccare l'app File con Face ID (tieni premuta l'icona
-  › *Richiedi Face ID*);
+- i **backup locali** sono in chiaro, ma stanno nella cartella dell'app, protetti come il database: non compaiono nell'app File
+  e si aprono solo dall'app, dietro Face ID. Se l'app non si apre (firma scaduta) restano lì: basta rilanciare `installa.sh`.
+  Per averne una copia fuori dal telefono vanno esportati, e l'esportazione li cifra;
 - se il **backup iCloud dell'iPhone** è attivo, database e backup locali ne fanno parte, come per ogni app;
 - le notifiche di scadenza mostrano il nome della banca, anche sulla schermata di blocco se le anteprime sono attive.
 

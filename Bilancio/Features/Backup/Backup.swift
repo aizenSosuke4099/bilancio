@@ -3,7 +3,8 @@ import SwiftData
 import UniformTypeIdentifiers
 
 /// Backup = cartella in formato aperto (vedi `BackupAperto`: JSON + foto, leggibile anche su Android o al computer)
-/// in Documents/Backup/Bilancio-AAAA-MM-GG-HHmm/, visibile in File › Sul mio iPhone › Bilancio.
+/// in Documents/Backup/Bilancio-AAAA-MM-GG-HHmm/. La cartella dell'app non compare nell'app File (vedi Bilancio-Info.plist):
+/// i backup locali sono in chiaro e si aprono solo da qui, dietro Face ID; fuori dall'iPhone escono cifrati.
 /// Il ripristino ricostruisce un database nuovo in Application Support/RipristinoInSospeso/, che viene
 /// messo al posto di quello attuale al riavvio, prima di aprire SwiftData.
 /// Si ripristinano anche i backup del vecchio formato (copia della cartella del database).

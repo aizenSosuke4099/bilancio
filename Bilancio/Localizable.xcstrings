@@ -7925,12 +7925,12 @@
         }
       }
     },
-    "Uno automatico a settimana; si tengono gli ultimi 4. Li trovi anche in File › Sul mio iPhone › Bilancio › Backup.": {
+    "Uno automatico a settimana; si tengono gli ultimi 4. Restano dentro l'app, dietro Face ID: per portarne uno fuori tienilo premuto e scegli «Salva in File…», che lo protegge con la tua password.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "One automatic backup a week; the last 4 are kept. You'll also find them in Files › On My iPhone › Bilancio › Backup."
+            "value": "One automatic backup a week; the last 4 are kept. They stay inside the app, behind Face ID: to take one out, press and hold it and choose “Save to Files…”, which protects it with your password."
           }
         }
       }

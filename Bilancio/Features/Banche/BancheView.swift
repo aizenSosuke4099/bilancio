@@ -152,7 +152,7 @@ struct BancheView: View {
         // il file scaricato da Enable Banking si chiama <application id>.pem
         let nome = url.deletingPathExtension().lastPathComponent
         if applicationId.isEmpty, UUID(uuidString: nome) != nil { applicationId = nome }
-        // la chiave ora sta nel Portachiavi: una copia lasciata nella cartella di Bilancio (visibile in File) si toglie
+        // la chiave ora sta nel Portachiavi: una copia lasciata nella cartella di Bilancio si toglie
         if salvaChiave(testo), url.path.hasPrefix(URL.documentsDirectory.path) { try? FileManager.default.removeItem(at: url) }
     }
 

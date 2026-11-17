@@ -129,7 +129,8 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - Inflazione: indice NIC ISTAT scaricato da solo (`ISTAT`, SDMX 167_744, al massimo una volta al giorno, ~15 s; dati in UserDefaults).
   Pagina: tua inflazione vs ISTAT, paniere su tutto lo storico con la curva ISTAT, prodotto → grafico con punto selezionabile e
   acquisti che aprono lo scontrino. Il campo ISTAT manuale nelle Impostazioni è stato tolto.
-- Cartella di Bilancio visibile in File (`LSSupportsOpeningDocumentsInPlace` = true). Non usare PlistBuddy sull'Info.plist: toglie i commenti.
+- Cartella di Bilancio NON visibile in File dal 17/11: tolto `UIFileSharingEnabled` (i backup locali in chiaro si leggevano senza
+  Face ID); resta `LSSupportsOpeningDocumentsInPlace` per aprire gli estratti dove sono, senza copiarli nell'app. Non usare PlistBuddy sull'Info.plist: toglie i commenti.
 - Banche (15/11 sera): prime banche collegate, sincronizzazione OK. Errore 429 ASPSP_RATE_LIMIT_EXCEEDED risolto con le
   intestazioni PSU (`EnableBanking.intestazioniPSU`) quando l'utente usa l'app; in background niente intestazioni (limite ~4/giorno).
   Con la pagina ponte funzionano anche le banche che confermano il login nella loro app.
@@ -164,5 +165,5 @@ poi build completa e correzione degli errori di integrazione. Se un agente si è
 - Lasciato così di proposito: con l'addebito arrivato prima dello scontrino resta la data della banca; una ricorrenza con importo
   variabile resta un doppione visibile da eliminare a mano; `leggiNumero("1.500")` vale 1,5 (trattarlo come migliaia romperebbe
   pesi e prezzi con tre decimali sugli scontrini).
-- Scelte che spettano all'utente: backup locali visibili nell'app File (aggirano il blocco con Face ID), dati dell'app nel backup
-  iCloud dell'iPhone, nome della banca nelle notifiche di scadenza.
+- Deciso dall'utente il 17/11: i backup locali non devono comparire nell'app File (fatto). Restano da decidere: dati dell'app nel
+  backup iCloud dell'iPhone, nome della banca nelle notifiche di scadenza, elenco generico di banche online nelle parole chiave.

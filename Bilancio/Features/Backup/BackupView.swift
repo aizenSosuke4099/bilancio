@@ -69,7 +69,7 @@ struct BackupView: View {
             } header: {
                 Text("Backup sul telefono")
             } footer: {
-                Text("Uno automatico a settimana; si tengono gli ultimi 4. Li trovi anche in File › Sul mio iPhone › Bilancio › Backup.")
+                Text("Uno automatico a settimana; si tengono gli ultimi 4. Restano dentro l'app, dietro Face ID: per portarne uno fuori tienilo premuto e scegli «Salva in File…», che lo protegge con la tua password.")
             }
 
             Section {

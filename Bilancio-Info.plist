@@ -30,11 +30,10 @@
 			</array>
 		</dict>
 	</array>
-	<!-- I backup finiscono in "File > Sul mio iPhone > Bilancio": per mostrare la cartella servono
-	     sia LSSupportsOpeningDocumentsInPlace sia UIFileSharingEnabled -->
+	<!-- I file aperti con "Apri con Bilancio" (estratti conto) si leggono dove sono, senza copiarli dentro l'app.
+	     La cartella dell'app NON deve comparire in "File > Sul mio iPhone": lì i backup locali, che sono in chiaro,
+	     si leggerebbero senza passare da Face ID. Per mostrarla servirebbe anche UIFileSharingEnabled: manca apposta. -->
 	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
-	<key>UIFileSharingEnabled</key>
 	<true/>
 	<!-- Commit da cui è compilata l'app (lo passa installa.sh): serve ad "Aggiorna app" -->
 	<key>BilancioCommit</key>
