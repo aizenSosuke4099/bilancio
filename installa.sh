@@ -36,6 +36,13 @@ else
 fi
 COMMIT=$(git rev-parse HEAD)
 
+# Con l'Apple ID gratuito Xcode riusa il profilo di firma finché non scade: reinstallare non sposterebbe la scadenza.
+# Si toglie quello di questa app, così Xcode ne crea uno nuovo da 7 giorni.
+for f in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision; do
+  [ -f "$f" ] || continue
+  if security cms -D -i "$f" 2>/dev/null | grep -q "\.$BUNDLE</string>"; then rm -f "$f"; fi
+done
+
 echo "Compilo per l'iPhone $DEVICE (team $TEAM, app $BUNDLE)…"
 xcodebuild -project Bilancio.xcodeproj -scheme Bilancio -configuration Release \
   -destination "id=$DEVICE" -derivedDataPath build/device -allowProvisioningUpdates \

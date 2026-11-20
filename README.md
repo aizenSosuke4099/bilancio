@@ -133,7 +133,8 @@ L'app non è sull'App Store: la installi tu dal Mac, firmata col tuo Apple ID gr
 3. **Solo la prima volta**: iOS blocca l'app ("sviluppatore non autorizzato"). Vai in
    *Impostazioni › Generali › VPN e gestione dispositivi*, tocca il tuo Apple ID › **Autorizza**.
 
-Con l'Apple ID gratuito la firma dura **7 giorni**: poi l'app non si apre più finché non rilanci `installa.sh`. **I dati non si
+Con l'Apple ID gratuito la firma dura **7 giorni**: poi l'app non si apre più finché non rilanci `installa.sh`. Ogni volta lo script
+chiede ad Apple una firma nuova, quindi i 7 giorni ripartono dal momento in cui lo lanci. **I dati non si
 perdono.** L'app ti avvisa due giorni prima, il giorno prima e la mattina della scadenza. Con l'account sviluppatore a pagamento
 (99 €/anno) la firma durerebbe un anno.
 
